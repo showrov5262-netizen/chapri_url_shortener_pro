@@ -1,7 +1,7 @@
 'use client'
 
 import type { Click } from "@/types";
-import { Bar, BarChart, XAxis, YAxis, Tooltip } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 export default function ReferrerChart({ clicks }: { clicks: Click[] }) {
