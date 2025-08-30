@@ -1,14 +1,18 @@
+
 'use client'
 
 import { useState, useEffect } from "react";
 import { notFound, useParams } from "next/navigation";
 import AnalyticsView from "@/components/analytics/analytics-view";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Link as LinkType } from "@/types";
 import { mockLinks as initialMockLinks } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAiState } from "@/hooks/use-ai-state";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 // This tells Next.js to render this page on-demand on the server at request time,
 // which is crucial for dynamic routes on Vercel to avoid 404 errors.
@@ -32,6 +36,8 @@ export default function AnalyticsPage() {
   const params = useParams();
   const linkId = Array.isArray(params.linkId) ? params.linkId[0] : params.linkId;
   const [link, setLink] = useState<LinkType | undefined | null>(undefined);
+  const { status: aiStatus } = useAiState();
+  const isAiConfigured = aiStatus === 'valid';
 
   useEffect(() => {
     if (linkId) {
@@ -55,6 +61,12 @@ export default function AnalyticsPage() {
                 <Skeleton className="h-28 w-full" />
                 <Skeleton className="h-28 w-full lg:col-span-2" />
                 <Skeleton className="h-28 w-full" />
+            </div>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-80 w-full lg:col-span-3" />
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
             </div>
         </div>
     );
@@ -81,6 +93,21 @@ export default function AnalyticsPage() {
         </div>
       </div>
       
+      {!isAiConfigured && (
+        <Alert>
+            <Info className="h-4 w-4" />
+            <AlertTitle>AI Features Disabled</AlertTitle>
+            <AlertDescription>
+                <div className="flex items-center justify-between">
+                    <span>To enable AI-powered summaries and bot detection, please configure your API key in the settings.</span>
+                    <Button asChild variant="secondary" size="sm">
+                        <Link href="/dashboard/settings/ai">Configure AI</Link>
+                    </Button>
+                </div>
+            </AlertDescription>
+        </Alert>
+      )}
+
       <AnalyticsView link={link} />
     </div>
   );
