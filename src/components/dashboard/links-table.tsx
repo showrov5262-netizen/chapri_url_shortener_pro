@@ -83,7 +83,7 @@ export default function LinksTable({ links, onAddLink, onUpdateLink, onDeleteLin
     <>
       <div className="flex flex-col gap-4">
         <div className="flex justify-end">
-          <CreateLinkDialog onAddLink={onAddLink} />
+          <CreateLinkDialog links={links} onAddLink={onAddLink} />
         </div>
         <div className="rounded-lg border shadow-sm">
             <Table>

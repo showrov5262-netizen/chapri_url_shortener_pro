@@ -28,7 +28,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
-export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => void }) {
+export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => void }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     
@@ -100,10 +100,24 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             return;
         }
 
+        const finalShortCode = shortCode.trim();
+        if (finalShortCode) {
+            const isDuplicate = links.some(link => link.shortCode === finalShortCode);
+            if (isDuplicate) {
+                toast({
+                    variant: "destructive",
+                    title: "Duplicate Short Code",
+                    description: "This custom short code is already in use. Please choose another one.",
+                });
+                return;
+            }
+        }
+        
+
         const newLink: Omit<Link, 'id' | 'createdAt' | 'clicks'> = {
             longUrl,
             title,
-            shortCode: shortCode.trim() || Math.random().toString(36).substring(2, 8),
+            shortCode: finalShortCode || Math.random().toString(36).substring(2, 8),
             description,
             thumbnailUrl,
             redirectType,
