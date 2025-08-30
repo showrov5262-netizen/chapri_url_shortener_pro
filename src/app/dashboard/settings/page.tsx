@@ -1,6 +1,9 @@
-import ApiKeyConfig from "@/components/settings/api-key-config";
 import FeatureToggles from "@/components/settings/feature-toggles";
 import { mockSettings } from "@/lib/data";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronRight } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -11,7 +14,22 @@ export default function SettingsPage() {
           Manage global defaults for your link shortener features and security.
         </p>
       </div>
-      <ApiKeyConfig />
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Provider Configuration</CardTitle>
+          <CardDescription>
+            Manage the API key for the generative AI features in this application.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Link href="/dashboard/settings/ai">
+                <Button variant="outline">
+                    Configure AI Settings
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+            </Link>
+        </CardContent>
+      </Card>
       <FeatureToggles initialSettings={mockSettings} />
     </div>
   );
