@@ -1,3 +1,4 @@
+
 export interface Click {
   id: string;
   ipAddress: string;
@@ -75,10 +76,16 @@ export interface Link {
 
 export interface Settings {
   // Global security settings
-  botDetection: boolean;
+  botDetection: boolean; // AI-powered
+  manualBotDetection: {
+    blockKnownBots: boolean;
+    blockProxies: boolean;
+    blockDataCenterIPs: boolean;
+    blockEmailScanners: boolean;
+  };
   malwareProtection: boolean; // Phishing & Malware Protection
   captchaVerification: boolean;
-_ipRateLimiting: boolean;
+  ipRateLimiting: boolean;
   
   // Global redirection defaults
   defaultRedirectType: '301' | '302';

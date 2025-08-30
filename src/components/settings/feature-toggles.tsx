@@ -12,8 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 export default function FeatureToggles({ initialSettings }: { initialSettings: Settings }) {
   const [settings, setSettings] = useState(initialSettings);
 
-  const handleToggle = (key: keyof Settings) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] as any }));
+  const handleToggle = (key: keyof Settings | `manualBotDetection.${keyof Settings['manualBotDetection']}`) => {
+    if (key.startsWith('manualBotDetection.')) {
+      const subKey = key.split('.')[1] as keyof Settings['manualBotDetection'];
+      setSettings(prev => ({
+        ...prev,
+        manualBotDetection: {
+          ...prev.manualBotDetection,
+          [subKey]: !prev.manualBotDetection[subKey],
+        },
+      }));
+    } else {
+      setSettings(prev => ({ ...prev, [key]: !prev[key as keyof Settings] as any }));
+    }
   };
   
   const handleRedirectTypeChange = (value: '301' | '302') => {
@@ -33,11 +44,11 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-card shadow-sm">
             <Label htmlFor="bot-detection" className="flex flex-col gap-1">
-                <span>Bot Detection</span>
+                <span>AI-Powered Bot Detection</span>
                 <span className="font-normal text-muted-foreground text-xs">
-                    Enable AI-powered bot filtering.
+                    Enable Genkit AI-powered filtering.
                 </span>
             </Label>
             <Switch
@@ -46,6 +57,43 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
               onCheckedChange={() => handleToggle('botDetection')}
             />
           </div>
+          
+          <div className="space-y-4">
+            <Label className="text-sm font-medium">Manual Bot Filtering</Label>
+            <div className="space-y-4 pl-4 border-l-2">
+              <div className="flex items-center justify-between">
+                <Label className="font-normal text-sm">Known Bots & Crawlers</Label>
+                <Switch 
+                  checked={settings.manualBotDetection.blockKnownBots}
+                  onCheckedChange={() => handleToggle('manualBotDetection.blockKnownBots')}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="font-normal text-sm">Anonymous Proxies & VPNs</Label>
+                <Switch
+                  checked={settings.manualBotDetection.blockProxies}
+                  onCheckedChange={() => handleToggle('manualBotDetection.blockProxies')}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="font-normal text-sm">Data Center IPs</Label>
+                <Switch
+                  checked={settings.manualBotDetection.blockDataCenterIPs}
+                  onCheckedChange={() => handleToggle('manualBotDetection.blockDataCenterIPs')}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="font-normal text-sm">Email Scanners</Label>
+                <Switch
+                  checked={settings.manualBotDetection.blockEmailScanners}
+                  onCheckedChange={() => handleToggle('manualBotDetection.blockEmailScanners')}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <Separator />
+
           <div className="flex items-center justify-between">
             <Label htmlFor="malware-protection" className="flex flex-col gap-1">
                 <span>Phishing & Malware Protection</span>

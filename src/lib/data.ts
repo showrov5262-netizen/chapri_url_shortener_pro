@@ -1,3 +1,4 @@
+
 import type { Click, Link, Settings } from '@/types';
 
 const generateClicks = (count: number, daysAgo: number, shortCode: string): Link['clicks'] => {
@@ -187,9 +188,15 @@ export const mockLinks: Link[] = [
 export const mockSettings: Settings = {
     // Security
     botDetection: true,
+    manualBotDetection: {
+      blockKnownBots: true,
+      blockProxies: false,
+      blockDataCenterIPs: false,
+      blockEmailScanners: true,
+    },
     malwareProtection: true,
     captchaVerification: false,
-    _ipRateLimiting: true,
+    ipRateLimiting: true,
     
     // Redirection
     defaultRedirectType: '301',
