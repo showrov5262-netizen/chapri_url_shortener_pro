@@ -54,6 +54,9 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=1',
     createdAt: '2024-07-15T10:00:00Z',
     clicks: generateClicks(1258, 30, 'AbC123'),
+    isCloaked: false,
+    fakePreviewPageUrl: '',
+    spoof: null,
   },
   {
     id: '2',
@@ -63,6 +66,9 @@ export const mockLinks: Link[] = [
     description: 'A short link to the pull requests page of our main project repository.',
     createdAt: '2024-07-10T14:30:00Z',
     clicks: generateClicks(732, 45, 'GhPulls'),
+    isCloaked: true,
+    fakePreviewPageUrl: '',
+    spoof: null,
   },
   {
     id: '3',
@@ -73,6 +79,13 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=2',
     createdAt: '2024-06-25T09:00:00Z',
     clicks: generateClicks(421, 60, 'ProjSpec'),
+    isCloaked: false,
+    fakePreviewPageUrl: 'https://example.com/custom-preview-page',
+    spoof: {
+      title: 'Project Alpha Specs [CONFIDENTIAL]',
+      description: 'Internal use only. Do not distribute.',
+      imageUrl: 'https://picsum.photos/1200/630?random=10',
+    },
   },
   {
     id: '4',
@@ -82,6 +95,9 @@ export const mockLinks: Link[] = [
     description: 'Link to the official video tutorial for our product.',
     createdAt: '2024-05-20T18:00:00Z',
     clicks: generateClicks(2345, 90, 'VidTut'),
+    isCloaked: false,
+    fakePreviewPageUrl: '',
+    spoof: null,
   },
   {
     id: '5',
@@ -92,6 +108,9 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=3',
     createdAt: '2024-07-18T11:00:00Z',
     clicks: generateClicks(89, 20, 'BlogWflw'),
+    isCloaked: false,
+    fakePreviewPageUrl: '',
+    spoof: null,
   },
 ];
 
@@ -100,8 +119,8 @@ export const mockSettings: Settings = {
     emailScannerProtection: true,
     captchaVerification: false,
     ipRateLimiting: true,
-    fakeReferrerProtection: false,
-    customThumbnails: true,
-    fakePreviewPages: false,
-    redirectDelays: true,
+    linkCloaking: false,
+    fakePreviewPages: true,
+    fakePreviewPageUrl: "https://example.com/global-preview",
+    spoofSocialPreviews: true,
 }

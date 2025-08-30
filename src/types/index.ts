@@ -12,6 +12,12 @@ export interface Click {
   clickedAt: string;
 }
 
+export interface SpoofData {
+  title: string;
+  description: string;
+  imageUrl: string;
+}
+
 export interface Link {
   id: string;
   longUrl: string;
@@ -21,15 +27,22 @@ export interface Link {
   thumbnailUrl?: string;
   createdAt: string;
   clicks: Click[];
+  // Link-specific settings
+  isCloaked: boolean;
+  fakePreviewPageUrl: string | null;
+  spoof: SpoofData | null;
 }
 
 export interface Settings {
+  // Global security settings
   botDetection: boolean;
   emailScannerProtection: boolean;
   captchaVerification: boolean;
   ipRateLimiting: boolean;
-  fakeReferrerProtection: boolean;
-  customThumbnails: boolean;
+  
+  // Global link behavior defaults
+  linkCloaking: boolean;
   fakePreviewPages: boolean;
-  redirectDelays: boolean;
+  fakePreviewPageUrl: string;
+  spoofSocialPreviews: boolean;
 }
