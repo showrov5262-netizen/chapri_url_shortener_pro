@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState } from "react";
@@ -5,8 +6,6 @@ import type { Settings } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "../ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Separator } from "../ui/separator";
 
 export default function FeatureToggles({ initialSettings }: { initialSettings: Settings }) {
@@ -15,14 +14,12 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
   const handleToggle = (key: keyof Settings) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key] as any }));
   };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setSettings(prev => ({...prev, [id]: value }));
-  }
-
-  const handleSelectChange = (id: keyof Settings, value: string) => {
-    setSettings(prev => ({...prev, [id]: value }));
+  
+  const handleRedirectTypeChange = (checked: boolean) => {
+    setSettings(prev => ({
+        ...prev,
+        defaultRedirectType: checked ? '301' : '302'
+    }));
   }
 
   return (
@@ -98,20 +95,18 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-           <div className="space-y-3">
-             <Label>Default Redirect Type</Label>
-             <Select 
-                value={settings.defaultRedirectType} 
-                onValueChange={(value) => handleSelectChange('defaultRedirectType', value)}
-              >
-               <SelectTrigger>
-                 <SelectValue placeholder="Select redirect type" />
-               </SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="301">301 Permanent</SelectItem>
-                 <SelectItem value="302">302 Temporary</SelectItem>
-               </SelectContent>
-             </Select>
+           <div className="flex items-center justify-between">
+             <Label htmlFor="default-redirect-type" className="flex flex-col gap-1">
+                <span>Default Redirect: 301 Permanent</span>
+                <span className="font-normal text-muted-foreground text-xs">
+                    ON = 301 (Permanent), OFF = 302 (Temporary).
+                </span>
+            </Label>
+             <Switch
+              id="default-redirect-type"
+              checked={settings.defaultRedirectType === '301'}
+              onCheckedChange={handleRedirectTypeChange}
+            />
            </div>
            <Separator />
            <div className="flex items-center justify-between">
