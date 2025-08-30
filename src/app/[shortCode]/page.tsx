@@ -1,3 +1,4 @@
+
 // src/app/[shortCode]/page.tsx
 'use client'
 
