@@ -8,9 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "../ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { useAiState } from "@/hooks/use-ai-state";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { cn } from "@/lib/utils";
+
 
 export default function FeatureToggles({ initialSettings }: { initialSettings: Settings }) {
   const [settings, setSettings] = useState(initialSettings);
+  const { status: aiStatus } = useAiState();
+  const isAiConfigured = aiStatus === 'valid';
 
   const handleToggle = (key: keyof Settings | `manualBotDetection.${keyof Settings['manualBotDetection']}`) => {
     if (key.startsWith('manualBotDetection.')) {
@@ -34,6 +40,15 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
     }));
   }
 
+  const AiStatusIndicator = () => (
+     <span
+      className={cn(
+        "h-2 w-2 rounded-full mr-2 shrink-0",
+        isAiConfigured ? "bg-green-500" : "bg-red-500"
+      )}
+    />
+  )
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <Card className="lg:col-span-1">
@@ -44,19 +59,36 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-3 rounded-lg border bg-card shadow-sm">
-            <Label htmlFor="bot-detection" className="flex flex-col gap-1">
-                <span>AI-Powered Bot Detection</span>
-                <span className="font-normal text-muted-foreground text-xs">
-                    Enable Genkit AI-powered filtering.
-                </span>
-            </Label>
-            <Switch
-              id="botDetection"
-              checked={settings.botDetection}
-              onCheckedChange={() => handleToggle('botDetection')}
-            />
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-card shadow-sm has-[[data-disabled=true]]:opacity-50 has-[[data-disabled=true]]:cursor-not-allowed">
+                  <Label htmlFor="bot-detection" className="flex items-center gap-1 cursor-pointer">
+                      <AiStatusIndicator />
+                      <div className="flex flex-col">
+                        <span>AI-Powered Bot Detection</span>
+                        <span className="font-normal text-muted-foreground text-xs">
+                            Enable Genkit AI-powered filtering.
+                        </span>
+                      </div>
+                  </Label>
+                  <Switch
+                    id="botDetection"
+                    checked={settings.botDetection}
+                    onCheckedChange={() => handleToggle('botDetection')}
+                    disabled={!isAiConfigured}
+                    data-disabled={!isAiConfigured}
+                  />
+                </div>
+              </TooltipTrigger>
+              {!isAiConfigured && (
+                  <TooltipContent>
+                    <p>AI is not configured. Please add a valid API key in settings.</p>
+                  </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
           
           <div className="space-y-4">
             <Label className="text-sm font-medium">Manual Bot Filtering</Label>

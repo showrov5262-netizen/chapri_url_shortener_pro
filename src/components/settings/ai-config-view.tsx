@@ -1,30 +1,28 @@
 'use client'
 
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Info, CheckCircle2, XCircle, Loader2, Trash2 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { validateApiKey } from "@/ai/flows/validate-api-key";
-
-type ApiStatus = 'unknown' | 'valid' | 'invalid' | 'checking';
+import { useAiState } from "@/hooks/use-ai-state";
 
 export default function AiConfigView() {
   const { toast } = useToast();
-  const [apiKey, setApiKey] = useState('');
-  const [status, setStatus] = useState<ApiStatus>('unknown');
+  const { apiKey, setApiKey, status, setStatus, isChecking, setIsChecking } = useAiState();
 
-  const handleSave = () => {
-    toast({
-      title: "API Key Updated",
-      description: "Remember to set this in your environment variables for deployment.",
-    });
+  const handleClearKey = () => {
+    setApiKey('');
     setStatus('unknown');
-  };
+    toast({
+        title: "API Key Cleared",
+        description: "The local API key has been removed.",
+    });
+  }
 
   const handleCheckStatus = async () => {
     if (!apiKey) {
@@ -35,7 +33,7 @@ export default function AiConfigView() {
         });
         return;
     }
-    setStatus('checking');
+    setIsChecking(true);
     try {
         const result = await validateApiKey({ apiKey });
         if (result.isValid) {
@@ -60,6 +58,8 @@ export default function AiConfigView() {
             title: "Error Checking Status",
             description: "An unexpected error occurred. See console for details.",
         });
+    } finally {
+        setIsChecking(false);
     }
   };
 
@@ -109,9 +109,18 @@ export default function AiConfigView() {
           </AlertDescription>
         </Alert>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={handleCheckStatus} disabled={status === 'checking' || !apiKey}>Check Status</Button>
-        <Button onClick={handleSave}>Save Key</Button>
+      <CardFooter className="flex justify-between">
+        <Button variant="destructive" onClick={handleClearKey} disabled={!apiKey}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Clear Key
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleCheckStatus} disabled={isChecking || !apiKey}>
+            {isChecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Check Status
+          </Button>
+          <Button onClick={() => toast({ title: "API Key Saved Locally" })}>Save Key</Button>
+        </div>
       </CardFooter>
     </Card>
   );
