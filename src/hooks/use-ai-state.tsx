@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
-type ApiStatus = 'unknown' | 'valid' | 'invalid';
+type ApiStatus = 'unknown' | 'valid' | 'invalid' | 'checking';
 
 interface AiStateContextProps {
   apiKey: string;
@@ -19,7 +19,7 @@ const AiStateContext = createContext<AiStateContextProps | undefined>(undefined)
 
 // A simple in-memory cache that lasts for the session.
 // In a real app, you might use localStorage for persistence.
-let cachedApiKey = 'AIzaSyC83QPN6AFcfVmbZfR-XNMQzYHKj0U931E';
+let cachedApiKey = 'AIzaSyAoHdB9ohvan8B2UmYL2N_mprGb2xwOvFE';
 let cachedApiStatus: ApiStatus = 'unknown';
 let cachedErrorMessage: string | null = null;
 
@@ -43,6 +43,14 @@ export const AiStateProvider = ({ children }: { children: ReactNode }) => {
     cachedErrorMessage = message;
     _setErrorMessage(message);
   }
+  
+  // When the provider loads, automatically set the status to checking if there is a key.
+  useEffect(() => {
+    if (apiKey) {
+      _setStatus('unknown');
+    }
+  }, [apiKey]);
+
 
   return (
     <AiStateContext.Provider value={{ apiKey, setApiKey, status, setStatus, isChecking, setIsChecking, errorMessage, setErrorMessage }}>
