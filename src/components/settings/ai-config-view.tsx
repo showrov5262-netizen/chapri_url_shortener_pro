@@ -110,7 +110,7 @@ export default function AiConfigView() {
         </Alert>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={handleCheckStatus} disabled={status === 'checking'}>Check Status</Button>
+        <Button variant="secondary" onClick={handleCheckStatus} disabled={status === 'checking' || !apiKey}>Check Status</Button>
         <Button onClick={handleSave}>Save Key</Button>
       </CardFooter>
     </Card>

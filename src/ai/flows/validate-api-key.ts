@@ -27,12 +27,17 @@ export async function validateApiKey(input: ValidateApiKeyInput): Promise<Valida
 
   const testAi = genkit({
     plugins: [googleAI({ apiKey: input.apiKey })],
-    model: 'googleai/gemini-2.5-flash',
   });
 
   try {
     // A lightweight, low-cost operation to check if the key works.
-    await testAi.listModels();
+    await testAi.generate({
+        model: 'googleai/gemini-2.5-flash',
+        prompt: "test",
+        config: {
+            maxOutputTokens: 1
+        }
+    });
     return { isValid: true };
   } catch (e: any) {
     console.error("API Key validation failed:", e.message);
