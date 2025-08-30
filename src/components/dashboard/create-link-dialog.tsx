@@ -21,48 +21,93 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
+import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
-export function CreateLinkDialog() {
+
+export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => void }) {
+    const { toast } = useToast();
     const [open, setOpen] = useState(false);
     
-    // Main link settings
-    const [isCloaked, setIsCloaked] = useState(false);
-    const [useFakePreview, setUseFakePreview] = useState(false);
-    const [useSpoof, setUseSpoof] = useState(false);
-    const [redirectType, setRedirectType] = useState('301');
-    const [useMetaRefresh, setUseMetaRefresh] = useState(false);
+    // Form state
+    const [longUrl, setLongUrl] = useState('');
+    const [title, setTitle] = useState('');
+    const [shortCode, setShortCode] = useState('');
+    const [description, setDescription] = useState('');
 
-    // Security
+    const [isCloaked, setIsCloaked] = useState(false);
+    const [useMetaRefresh, setUseMetaRefresh] = useState(false);
+    const [redirectType, setRedirectType] = useState<'301' | '302'>('301');
+    const [password, setPassword] = useState('');
+    const [expiresAt, setExpiresAt] = useState<Date | undefined>();
+    const [maxClicks, setMaxClicks] = useState<number | null>(null);
+    const [spoof, setSpoof] = useState<SpoofData | null>(null);
+    const [geoTargets, setGeoTargets] = useState<GeoTarget[]>([]);
+    const [deviceTargets, setDeviceTargets] = useState<DeviceTarget[]>([]);
+    const [abTestUrls, setAbTestUrls] = useState<string[]>([]);
+    const [retargetingPixels, setRetargetingPixels] = useState<RetargetingPixel[]>([]);
+
     const [usePassword, setUsePassword] = useState(false);
     const [useExpiration, setUseExpiration] = useState(false);
-    const [expirationDate, setExpirationDate] = useState<Date | undefined>();
-
-    // Targeting
+    const [useSpoof, setUseSpoof] = useState(false);
     const [useGeoTargeting, setUseGeoTargeting] = useState(false);
-    const [geoTargets, setGeoTargets] = useState<{country: string, url: string}[]>([]);
-    
     const [useDeviceTargeting, setUseDeviceTargeting] = useState(false);
-    const [deviceTargets, setDeviceTargets] = useState<{device: string, url: string}[]>([]);
-
     const [useABTesting, setUseABTesting] = useState(false);
-    const [abTestUrls, setAbTestUrls] = useState<string[]>(['']);
-    
     const [usePixels, setUsePixels] = useState(false);
-    const [pixels, setPixels] = useState<{provider: string, id: string}[]>([]);
 
 
     const addGeoTarget = () => setGeoTargets([...geoTargets, { country: '', url: '' }]);
     const removeGeoTarget = (index: number) => setGeoTargets(geoTargets.filter((_, i) => i !== index));
     
-    const addDeviceTarget = () => setDeviceTargets([...deviceTargets, { device: 'Mobile', url: '' }]);
+    const addDeviceTarget = () => setDeviceTargets([...deviceTargets, { device: 'iOS', url: '' }]);
     const removeDeviceTarget = (index: number) => setDeviceTargets(deviceTargets.filter((_, i) => i !== index));
     
     const addAbTestUrl = () => setAbTestUrls([...abTestUrls, '']);
     const removeAbTestUrl = (index: number) => setAbTestUrls(abTestUrls.filter((_, i) => i !== index));
     
-    const addPixel = () => setPixels([...pixels, { provider: 'Facebook', id: '' }]);
-    const removePixel = (index: number) => setPixels(pixels.filter((_, i) => i !== index));
+    const addPixel = () => setPixels([...retargetingPixels, { provider: 'Facebook', id: '' }]);
+    const removePixel = (index: number) => setRetargetingPixels(retargetingPixels.filter((_, i) => i !== index));
 
+    const handleSubmit = () => {
+        if (!longUrl || !title) {
+            toast({
+                variant: "destructive",
+                title: "Validation Error",
+                description: "Destination URL and Title are required.",
+            });
+            return;
+        }
+
+        const newLink: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'> & { shortCode?: string } = {
+            longUrl,
+            title,
+            shortCode,
+            description,
+            redirectType,
+            isCloaked,
+            useMetaRefresh,
+            password: usePassword ? password : null,
+            expiresAt: useExpiration && expiresAt ? expiresAt.toISOString() : null,
+            maxClicks: useExpiration ? maxClicks : null,
+            spoof: useSpoof ? spoof : null,
+            geoTargets: useGeoTargeting ? geoTargets : [],
+            deviceTargets: useDeviceTargeting ? deviceTargets : [],
+            abTestUrls: useABTesting ? abTestUrls : [],
+            retargetingPixels: usePixels ? retargetingPixels : [],
+        };
+        
+        onAddLink(newLink);
+        toast({
+            title: "Link Created!",
+            description: "Your new short link has been added to the dashboard.",
+        });
+        setOpen(false);
+        // Reset form state
+        setLongUrl('');
+        setTitle('');
+        setShortCode('');
+        setDescription('');
+    };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -85,16 +130,28 @@ export function CreateLinkDialog() {
             <Input
               id="long-url"
               placeholder="https://example.com/my-super-long-url"
+              value={longUrl}
+              onChange={(e) => setLongUrl(e.target.value)}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div className="grid gap-2">
                 <Label htmlFor="title">Title</Label>
-                <Input id="title" placeholder="e.g., Summer Marketing Campaign" />
+                <Input 
+                  id="title" 
+                  placeholder="e.g., Summer Marketing Campaign"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
             </div>
              <div className="grid gap-2">
                 <Label htmlFor="short-code">Custom Short Code (Optional)</Label>
-                <Input id="short-code" placeholder="e.g., summer-sale" />
+                <Input 
+                  id="short-code" 
+                  placeholder="e.g., summer-sale" 
+                  value={shortCode}
+                  onChange={(e) => setShortCode(e.target.value)}
+                />
             </div>
           </div>
           <div className="grid gap-2">
@@ -102,6 +159,8 @@ export function CreateLinkDialog() {
             <Textarea
               id="description"
               placeholder="A brief description for internal reference."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
             />
           </div>
           
@@ -124,7 +183,7 @@ export function CreateLinkDialog() {
 
                 <div className="rounded-lg border p-3 shadow-sm space-y-3">
                   <Label>Redirect Type</Label>
-                  <Select value={redirectType} onValueChange={setRedirectType}>
+                  <Select value={redirectType} onValueChange={(value: '301' | '302') => setRedirectType(value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select redirect type" />
                     </SelectTrigger>
@@ -168,11 +227,11 @@ export function CreateLinkDialog() {
                       <div className="space-y-4 pt-2">
                         <div className="grid gap-2">
                            <Label htmlFor="spoof-title" className="text-xs">Spoofed Title</Label>
-                           <Input id="spoof-title" placeholder="e.g., An Incredible Offer!" />
+                           <Input id="spoof-title" placeholder="e.g., An Incredible Offer!" onChange={(e) => setSpoof(s => ({...s!, title: e.target.value}))} />
                         </div>
                         <div className="grid gap-2">
                            <Label htmlFor="spoof-description" className="text-xs">Spoofed Description</Label>
-                           <Textarea id="spoof-description" placeholder="You won't believe what happens next." />
+                           <Textarea id="spoof-description" placeholder="You won't believe what happens next." onChange={(e) => setSpoof(s => ({...s!, description: e.target.value}))} />
                         </div>
                         <div className="grid gap-2">
                           <Label className="text-xs">Spoofed Thumbnail</Label>
@@ -212,7 +271,7 @@ export function CreateLinkDialog() {
                     {usePassword && (
                       <div className="grid gap-2 pt-2">
                         <Label htmlFor="link-password" className="text-xs">Password</Label>
-                        <Input id="link-password" type="password" placeholder="Enter password" />
+                        <Input id="link-password" type="password" placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} />
                       </div>
                     )}
                   </div>
@@ -233,21 +292,21 @@ export function CreateLinkDialog() {
                       <div className="grid grid-cols-2 gap-4 pt-2">
                         <div className="grid gap-2">
                           <Label htmlFor="max-clicks" className="text-xs">Max Clicks</Label>
-                          <Input id="max-clicks" type="number" placeholder="e.g., 1000" />
+                          <Input id="max-clicks" type="number" placeholder="e.g., 1000" onChange={(e) => setMaxClicks(parseInt(e.target.value, 10))} />
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="expiration-date" className="text-xs">Expiration Date</Label>
                            <Popover>
                             <PopoverTrigger asChild>
                               <Button variant="outline" className="font-normal justify-start">
-                                {expirationDate ? format(expirationDate, 'PPP') : <span>Pick a date</span>}
+                                {expiresAt ? format(expiresAt, 'PPP') : <span>Pick a date</span>}
                               </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                               <Calendar
                                 mode="single"
-                                selected={expirationDate}
-                                onSelect={setExpirationDate}
+                                selected={expiresAt}
+                                onSelect={setExpiresAt}
                                 initialFocus
                               />
                             </PopoverContent>
@@ -349,7 +408,7 @@ export function CreateLinkDialog() {
                   </div>
                   {usePixels && (
                     <div className="space-y-2 pt-2">
-                       {pixels.map((pixel, index) => (
+                       {retargetingPixels.map((pixel, index) => (
                         <div key={index} className="flex items-center gap-2">
                             <Select defaultValue={pixel.provider}>
                                 <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
@@ -375,7 +434,7 @@ export function CreateLinkDialog() {
 
         </div>
         <DialogFooter>
-          <Button type="submit" onClick={() => setOpen(false)}>Create Link</Button>
+          <Button type="submit" onClick={handleSubmit}>Create Link</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

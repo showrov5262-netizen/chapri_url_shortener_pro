@@ -1,5 +1,4 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { CreateLinkDialog } from "../dashboard/create-link-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
@@ -44,7 +43,7 @@ export function Header() {
       </Sheet>
 
       <div className="flex w-full items-center justify-end gap-4">
-        <CreateLinkDialog />
+        {/* CreateLinkDialog is now rendered inside LinksTable to have access to onAddLink */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" className="rounded-full">
