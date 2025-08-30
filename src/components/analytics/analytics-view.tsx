@@ -9,6 +9,7 @@ import ClicksByTimeChart from "./clicks-by-time-chart";
 import GeoChart from "./geo-chart";
 import DeviceChart from "./device-chart";
 import ReferrerChart from "./referrer-chart";
+import ClickHistoryTable from "./click-history-table";
 
 export default function AnalyticsView({ link }: { link: Link }) {
 
@@ -66,6 +67,8 @@ export default function AnalyticsView({ link }: { link: Link }) {
                 </CardContent>
             </Card>
         </div>
+
+        <ClickHistoryTable clicks={link.clicks} />
     </div>
   );
 }

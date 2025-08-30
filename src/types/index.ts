@@ -1,15 +1,27 @@
 export interface Click {
   id: string;
   ipAddress: string;
+  userAgent: string;
+  referrer: string;
+  clickedAt: string;
   country: string;
   city: string;
   region: string;
+  isp: string;
+  organization: string;
+  timezone: string;
+  language: string;
   device: 'Desktop' | 'Mobile' | 'Tablet';
+  deviceModel: string | null;
+  deviceBrand: string | null;
   browser: 'Chrome' | 'Firefox' | 'Safari' | 'Edge' | 'Other';
+  browserVersion: string;
+  browserEngine: string;
   os: 'Windows' | 'macOS' | 'Linux' | 'Android' | 'iOS';
-  referrer: string;
+  osVersion: string;
+  screenResolution: string;
   isBot: boolean;
-  clickedAt: string;
+  isEmailScanner: boolean;
 }
 
 export interface SpoofData {
@@ -66,7 +78,7 @@ export interface Settings {
   botDetection: boolean;
   malwareProtection: boolean; // Phishing & Malware Protection
   captchaVerification: boolean;
-  ipRateLimiting: boolean;
+_ipRateLimiting: boolean;
   
   // Global redirection defaults
   defaultRedirectType: '301' | '302';
