@@ -4,7 +4,7 @@ import type { Link, Settings, LoadingPage } from '@/types';
 export const mockLinks: Link[] = [
   {
     id: '1',
-    longUrl: 'https://www.example.com/a-very-long-url-that-needs-to-be-shortened-for-a-marketing-campaign',
+    longUrl: 'https://www.example.com',
     shortCode: 'demo',
     title: 'My First Link',
     description: 'This is a sample link to get you started. You can delete it later.',
