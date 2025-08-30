@@ -21,6 +21,12 @@ import { MoreHorizontal, BarChart2, Edit, Trash2, Copy } from "lucide-react";
 import Image from "next/image";
 import NextLink from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function LinksTable({ links }: { links: LinkType[] }) {
   const { toast } = useToast();
@@ -82,7 +88,16 @@ export default function LinksTable({ links }: { links: LinkType[] }) {
                 </TableCell>
                 <TableCell className="hidden md:table-cell text-right">{link.clicks.length.toLocaleString()}</TableCell>
                 <TableCell className="hidden md:table-cell">
-                  {new Date(link.createdAt).toLocaleDateString()}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        {new Date(link.createdAt).toLocaleDateString('en-US', { timeZone: 'UTC' })}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {new Date(link.createdAt).toLocaleString()}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
