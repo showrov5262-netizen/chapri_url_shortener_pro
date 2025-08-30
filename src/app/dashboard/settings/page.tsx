@@ -31,22 +31,6 @@ export default function SettingsPage() {
                 </Link>
             </CardContent>
         </Card>
-        <Card>
-            <CardHeader>
-            <CardTitle>Loading Pages</CardTitle>
-            <CardDescription>
-                Customize what users see during a redirect delay.
-            </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Link href="/dashboard/loading-pages">
-                    <Button variant="outline">
-                        Manage Loading Pages
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                    </Button>
-                </Link>
-            </CardContent>
-        </Card>
       </div>
       <FeatureToggles initialSettings={mockSettings} />
     </div>
