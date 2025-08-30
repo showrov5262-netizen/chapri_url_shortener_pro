@@ -455,82 +455,86 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
 
               </AccordionContent>
             </AccordionItem>
-
+            
             <AccordionItem value="loading-page-options" disabled={!useMetaRefresh}>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                     <AccordionTrigger className="text-sm font-semibold" disabled={!useMetaRefresh}>
-                      Loading Page
-                    </AccordionTrigger>
-                  </TooltipTrigger>
-                  {!useMetaRefresh && (
-                  <TooltipContent>
-                    <p>Enable "Meta Refresh Redirect" under Redirection Options to configure a loading page.</p>
-                  </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            {/* The disabled attribute is what we check against. We need a div wrapper for TooltipTrigger to work on disabled elements. */}
+                            <div tabIndex={useMetaRefresh ? -1 : 0} className="w-full">
+                                <AccordionTrigger className="text-sm font-semibold" disabled={!useMetaRefresh}>
+                                    Loading Page
+                                </AccordionTrigger>
+                            </div>
+                        </TooltipTrigger>
+                        {!useMetaRefresh && (
+                        <TooltipContent>
+                            <p>Enable "Meta Refresh Redirect" to configure a loading page.</p>
+                        </TooltipContent>
+                        )}
+                    </Tooltip>
+                </TooltipProvider>
 
-              <AccordionContent className="pt-4 space-y-6">
-                <div className="rounded-lg border p-3 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                        <Label>Configure Loading Page</Label>
-                        <p className="text-xs text-muted-foreground">
-                        Override global loading page settings for this link.
-                        </p>
-                    </div>
-                    <Switch
-                        checked={useLoadingPageOverride}
-                        onCheckedChange={setUseLoadingPageOverride}
-                    />
-                    </div>
-                    {useLoadingPageOverride && (
-                    <div className="space-y-4 pt-4 border-t">
-                        <RadioGroup 
-                        value={loadingPageConfig.mode}
-                        onValueChange={(value: 'global' | 'random' | 'specific') => {
-                            setLoadingPageConfig(prev => ({ ...prev, mode: value, useGlobal: value === 'global' }));
-                        }}
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="global" id="global" />
-                                <Label htmlFor="global" className="font-normal">Use Global Setting</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="random" id="random" />
-                                <Label htmlFor="random" className="font-normal">Show a random loading page</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="specific" id="specific" />
-                                <Label htmlFor="specific" className="font-normal">Use a specific loading page</Label>
-                            </div>
-                        </RadioGroup>
-                        {loadingPageConfig.mode === 'specific' && (
-                        <div className="grid gap-2 pt-2">
-                                <Label htmlFor="select-page" className="text-xs">Select Page</Label>
-                                <Select
-                                value={loadingPageConfig.selectedPageId ?? ""}
-                                onValueChange={(value) => setLoadingPageConfig(prev => ({...prev, selectedPageId: value}))}
-                                >
-                                <SelectTrigger id="select-page">
-                                    <SelectValue placeholder="Select a loading page" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {mockLoadingPages.map(page => (
-                                    <SelectItem key={page.id} value={page.id}>
-                                        {page.name}
-                                    </SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
+                <AccordionContent className="pt-4 space-y-6">
+                    <div className="rounded-lg border p-3 shadow-sm space-y-3">
+                        <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label>Configure Loading Page</Label>
+                            <p className="text-xs text-muted-foreground">
+                            Override global loading page settings for this link.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={useLoadingPageOverride}
+                            onCheckedChange={setUseLoadingPageOverride}
+                        />
+                        </div>
+                        {useLoadingPageOverride && (
+                        <div className="space-y-4 pt-4 border-t">
+                            <RadioGroup 
+                                value={loadingPageConfig.mode}
+                                onValueChange={(value: 'global' | 'random' | 'specific') => {
+                                    setLoadingPageConfig(prev => ({ ...prev, mode: value, useGlobal: value === 'global' }));
+                                }}
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="global" id="global" />
+                                    <Label htmlFor="global" className="font-normal">Use Global Setting</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="random" id="random" />
+                                    <Label htmlFor="random" className="font-normal">Show a random loading page</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="specific" id="specific" />
+                                    <Label htmlFor="specific" className="font-normal">Use a specific loading page</Label>
+                                </div>
+                            </RadioGroup>
+
+                            {loadingPageConfig.mode === 'specific' && (
+                                <div className="grid gap-2 pt-2">
+                                    <Label htmlFor="select-page" className="text-xs">Select Page</Label>
+                                    <Select
+                                        value={loadingPageConfig.selectedPageId ?? ""}
+                                        onValueChange={(value) => setLoadingPageConfig(prev => ({...prev, selectedPageId: value}))}
+                                    >
+                                        <SelectTrigger id="select-page">
+                                            <SelectValue placeholder="Select a loading page" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {mockLoadingPages.map(page => (
+                                            <SelectItem key={page.id} value={page.id}>
+                                                {page.name}
+                                            </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                         </div>
                         )}
                     </div>
-                    )}
-                </div>
-              </AccordionContent>
+                </AccordionContent>
             </AccordionItem>
           </Accordion>
 
