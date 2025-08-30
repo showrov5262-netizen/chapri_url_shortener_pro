@@ -74,7 +74,6 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=1',
     createdAt: '2024-07-15T10:00:00Z',
     clicks: generateClicks(1258, 30, 'AbC123'),
-    // New properties
     redirectType: '301',
     isCloaked: false,
     useMetaRefresh: false,
@@ -96,7 +95,6 @@ export const mockLinks: Link[] = [
     description: 'A short link to the pull requests page of our main project repository.',
     createdAt: '2024-07-10T14:30:00Z',
     clicks: generateClicks(732, 45, 'GhPulls'),
-    // New properties
     redirectType: '302',
     isCloaked: true,
     useMetaRefresh: false,
@@ -122,11 +120,15 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=2',
     createdAt: '2024-06-25T09:00:00Z',
     clicks: generateClicks(421, 60, 'ProjSpec'),
-    // New properties
     redirectType: '302',
     isCloaked: false,
     useMetaRefresh: true,
     metaRefreshDelay: 5,
+    loadingPageConfig: {
+      useGlobal: false,
+      enabled: true,
+      selectedPageId: 'lp-2',
+    },
     password: 'supersecret',
     expiresAt: '2024-08-30T23:59:59Z',
     maxClicks: 500,

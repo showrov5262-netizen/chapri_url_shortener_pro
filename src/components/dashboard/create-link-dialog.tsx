@@ -22,8 +22,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
-import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel } from "@/types";
+import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLoadingPageConfig } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { mockLoadingPages } from "@/lib/data";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 
 export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => void }) {
@@ -48,6 +50,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     const [deviceTargets, setDeviceTargets] = useState<DeviceTarget[]>([]);
     const [abTestUrls, setAbTestUrls] = useState<string[]>([]);
     const [retargetingPixels, setRetargetingPixels] = useState<RetargetingPixel[]>([]);
+    const [loadingPageConfig, setLoadingPageConfig] = useState<LinkLoadingPageConfig>({ useGlobal: true, enabled: false, selectedPageId: null });
 
     const [usePassword, setUsePassword] = useState(false);
     const [useExpiration, setUseExpiration] = useState(false);
@@ -89,6 +92,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             isCloaked,
             useMetaRefresh,
             metaRefreshDelay: useMetaRefresh ? (metaRefreshDelay || 0) : null,
+            loadingPageConfig: useMetaRefresh ? loadingPageConfig : undefined,
             password: usePassword ? password : null,
             expiresAt: useExpiration && expiresAt ? expiresAt.toISOString() : null,
             maxClicks: useExpiration ? maxClicks : null,
@@ -214,15 +218,65 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                     />
                   </div>
                    {useMetaRefresh && (
-                    <div className="grid gap-2 pt-2">
-                      <Label htmlFor="redirect-delay" className="text-xs">Redirect delay timer</Label>
-                      <Input
-                        id="redirect-delay"
-                        type="number"
-                        placeholder="0 for instant redirect"
-                        value={metaRefreshDelay ?? ''}
-                        onChange={(e) => setMetaRefreshDelay(parseInt(e.target.value, 10) || 0)}
-                      />
+                    <div className="space-y-4 pt-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="redirect-delay" className="text-xs">Redirect delay timer</Label>
+                        <Input
+                          id="redirect-delay"
+                          type="number"
+                          placeholder="0 for instant redirect"
+                          value={metaRefreshDelay ?? ''}
+                          onChange={(e) => setMetaRefreshDelay(parseInt(e.target.value, 10) || 0)}
+                        />
+                      </div>
+                      <div className="rounded-md border p-4 space-y-4">
+                        <Label className="font-medium">Loading Page Override</Label>
+                        <RadioGroup 
+                          value={loadingPageConfig.useGlobal ? 'global' : (loadingPageConfig.enabled ? 'specific' : 'disabled')}
+                          onValueChange={(value) => {
+                            if (value === 'global') {
+                              setLoadingPageConfig({ useGlobal: true, enabled: false, selectedPageId: null });
+                            } else if (value === 'disabled') {
+                              setLoadingPageConfig({ useGlobal: false, enabled: false, selectedPageId: null });
+                            } else {
+                              setLoadingPageConfig({ useGlobal: false, enabled: true, selectedPageId: loadingPageConfig.selectedPageId });
+                            }
+                          }}
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="global" id="global" />
+                                <Label htmlFor="global" className="font-normal">Use Global Setting</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="disabled" id="disabled" />
+                                <Label htmlFor="disabled" className="font-normal">Disable Loading Page for this link</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="specific" id="specific" />
+                                <Label htmlFor="specific" className="font-normal">Use a specific loading page</Label>
+                            </div>
+                        </RadioGroup>
+                        {!loadingPageConfig.useGlobal && loadingPageConfig.enabled && (
+                           <div className="grid gap-2 pt-2">
+                                <Label htmlFor="select-page" className="text-xs">Select Page</Label>
+                                <Select
+                                  value={loadingPageConfig.selectedPageId ?? ""}
+                                  onValueChange={(value) => setLoadingPageConfig(prev => ({...prev, selectedPageId: value}))}
+                                >
+                                <SelectTrigger id="select-page">
+                                    <SelectValue placeholder="Select a loading page" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {mockLoadingPages.map(page => (
+                                    <SelectItem key={page.id} value={page.id}>
+                                        {page.name}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                           </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

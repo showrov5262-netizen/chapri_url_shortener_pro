@@ -46,6 +46,12 @@ export interface RetargetingPixel {
     id: string;
 }
 
+export interface LinkLoadingPageConfig {
+  useGlobal: boolean;
+  enabled: boolean;
+  selectedPageId: string | null;
+}
+
 export interface Link {
   id: string;
   longUrl: string;
@@ -62,6 +68,7 @@ export interface Link {
   useMetaRefresh: boolean; // Meta Refresh Redirect
   metaRefreshDelay: number | null; // Delay in seconds for meta refresh
   spoof: SpoofData | null; // Spoof Social Media Preview
+  loadingPageConfig?: LinkLoadingPageConfig; // Per-link loading page settings
 
   // Security & Access
   password: string | null; // Password Protection
