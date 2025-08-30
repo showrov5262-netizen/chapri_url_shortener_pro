@@ -2,8 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { notFound, redirect } from 'next/navigation';
-import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import type { Link, Click } from '@/types';
 import { mockLinks as initialMockLinks, mockLoadingPages, mockSettings } from '@/lib/data';
 
@@ -33,10 +32,10 @@ const addClickToLinkInStorage = (shortCode: string) => {
         const newClick: Click = {
             id: `${shortCode}-click-${Date.now()}`,
             clickedAt: new Date().toISOString(),
-            ipAddress: `203.0.113.${Math.floor(Math.random() * 255)}`,
+            ipAddress: `203.0.113.${Math.floor(Math.random() * 255)}`, // Mock IP
             userAgent: navigator.userAgent,
             referrer: document.referrer || 'direct',
-            country: 'Unknown',
+            country: 'Unknown', // In a real app, this would be derived from IP
             city: 'Unknown',
             region: 'N/A',
             isp: 'Unknown ISP',
@@ -56,9 +55,11 @@ const addClickToLinkInStorage = (shortCode: string) => {
             isEmailScanner: false,
         };
 
-        links[linkIndex].clicks.unshift(newClick); // Add to the beginning of the array
+        // Add the new click to the beginning of the clicks array
+        links[linkIndex].clicks.unshift(newClick);
 
         try {
+            // Save the updated links array back to localStorage
             window.localStorage.setItem('mockLinksData', JSON.stringify(links));
         } catch (error) {
             console.error("Failed to save updated links to localStorage", error);
@@ -67,23 +68,13 @@ const addClickToLinkInStorage = (shortCode: string) => {
 };
 
 
-// This is a placeholder for metadata generation as it needs to be server-side
-// In a real app, you would fetch this data from an API before the page loads.
-// For now, we rely on client-side fetching to find the link.
-// export async function generateMetadata({ params }: { params: { shortCode: string } }): Promise<Metadata> {
-//   // This part is tricky without a database. We cannot easily access localStorage on the server.
-//   // We will return generic metadata and handle the title client-side.
-//   return {
-//     title: 'Redirecting...',
-//   };
-// }
-
-
 const getLoadingPageContent = (link: Link): string => {
+    // Determine which settings to use: per-link override or global
     const config = (link.useMetaRefresh && link.loadingPageConfig && !link.loadingPageConfig.useGlobal)
         ? link.loadingPageConfig
         : mockSettings.loadingPageSettings;
 
+    // Check if loading pages are enabled at all
     if (!config.enabled && !(link.loadingPageConfig && !link.loadingPageConfig.useGlobal)) {
         return '<p>Redirecting...</p>';
     }
@@ -103,6 +94,7 @@ const getLoadingPageContent = (link: Link): string => {
             : config.selectedPageId;
     }
 
+    // Find the page content from mock data
     const page = mockLoadingPages.find(p => p.id === pageId);
     return page ? page.content : '<p>Redirecting...</p>';
 }
@@ -159,11 +151,13 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       <!DOCTYPE html>
       <html>
       <head>
-        <meta http-equiv="refresh" content="0;url=${link.longUrl}" />
         <title>Redirecting...</title>
+        <script>
+          // Use setTimeout for a more reliable delay, meta refresh can be inconsistent
+          setTimeout(function() { window.location.href = "${link.longUrl}"; }, ${delay * 1000});
+        </script>
       </head>
       <body style="margin:0; padding:0;">
-        <script>setTimeout(function() { window.location.href = "${link.longUrl}"; }, ${delay * 1000});</script>
         ${pageContent}
       </body>
       </html>
@@ -175,10 +169,11 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
   }
 
   // Default: Standard Redirect (using client-side redirect)
+  // This part of the code runs after the link state has been set.
   if (typeof window !== 'undefined') {
       window.location.href = link.longUrl;
   }
   
-  // Fallback while the redirect happens
+  // Fallback content while the JavaScript redirect is being processed by the browser
   return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Redirecting you now...</div>;
 }
