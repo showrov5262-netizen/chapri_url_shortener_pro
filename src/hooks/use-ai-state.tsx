@@ -19,7 +19,7 @@ const AiStateContext = createContext<AiStateContextProps | undefined>(undefined)
 
 // A simple in-memory cache that lasts for the session.
 // In a real app, you might use localStorage for persistence.
-let cachedApiKey = 'YOUR_GEMINI_API_KEY_HERE';
+let cachedApiKey = '';
 let cachedApiStatus: ApiStatus = 'unknown';
 let cachedErrorMessage: string | null = null;
 
@@ -46,7 +46,7 @@ export const AiStateProvider = ({ children }: { children: ReactNode }) => {
   
   // When the provider loads, automatically set the status to checking if there is a key.
   useEffect(() => {
-    if (apiKey && apiKey !== 'YOUR_GEMINI_API_KEY_HERE') {
+    if (apiKey) {
       _setStatus('unknown');
     }
   }, [apiKey]);

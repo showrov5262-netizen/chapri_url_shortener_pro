@@ -47,6 +47,7 @@ export default function AiConfigView() {
         return;
     }
     setIsChecking(true);
+    setStatus('checking');
     setErrorMessage(null);
     try {
         const result = await validateApiKey({ apiKey });
