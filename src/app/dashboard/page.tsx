@@ -54,6 +54,10 @@ export default function DashboardPage() {
     };
     updateLinks([newLink, ...links]);
   };
+  
+  const updateLink = (updatedLinkData: Link) => {
+    updateLinks(links.map(link => link.id === updatedLinkData.id ? updatedLinkData : link));
+  };
 
   const deleteLink = (linkId: string) => {
     updateLinks(links.filter(link => link.id !== linkId));
@@ -72,7 +76,12 @@ export default function DashboardPage() {
         </p>
       </div>
       <StatsCards links={links} />
-      <LinksTable links={links} onAddLink={addLink} onDeleteLink={deleteLink} />
+      <LinksTable 
+        links={links} 
+        onAddLink={addLink} 
+        onUpdateLink={updateLink}
+        onDeleteLink={deleteLink} 
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 
 'use client'
 
+import { useState } from "react";
 import type { Link as LinkType } from "@/types";
 import {
   Table,
@@ -29,6 +30,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CreateLinkDialog } from "./create-link-dialog";
+import { EditLinkDialog } from "./edit-link-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,11 +47,14 @@ import {
 interface LinksTableProps {
   links: LinkType[];
   onAddLink: (newLinkData: Omit<LinkType, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => void;
+  onUpdateLink: (updatedLink: LinkType) => void;
   onDeleteLink: (linkId: string) => void;
 }
 
-export default function LinksTable({ links, onAddLink, onDeleteLink }: LinksTableProps) {
+export default function LinksTable({ links, onAddLink, onUpdateLink, onDeleteLink }: LinksTableProps) {
   const { toast } = useToast();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedLink, setSelectedLink] = useState<LinkType | null>(null);
 
   const handleCopy = (shortCode: string) => {
     const url = `${window.location.host}/${shortCode}`;
@@ -59,6 +64,11 @@ export default function LinksTable({ links, onAddLink, onDeleteLink }: LinksTabl
       description: url,
     });
   };
+  
+  const handleEdit = (link: LinkType) => {
+    setSelectedLink(link);
+    setIsEditOpen(true);
+  }
 
   const handleDelete = (linkId: string) => {
     onDeleteLink(linkId);
@@ -70,113 +80,121 @@ export default function LinksTable({ links, onAddLink, onDeleteLink }: LinksTabl
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
-        <CreateLinkDialog onAddLink={onAddLink} />
-      </div>
-      <div className="rounded-lg border shadow-sm">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="hidden w-[100px] sm:table-cell">
-                  <span className="sr-only">Thumbnail</span>
-                </TableHead>
-                <TableHead>Link</TableHead>
-                <TableHead>Short Code</TableHead>
-                <TableHead className="hidden md:table-cell text-right">Clicks</TableHead>
-                <TableHead className="hidden md:table-cell">Created</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {links.map((link) => (
-                <TableRow key={link.id}>
-                  <TableCell className="hidden sm:table-cell">
-                    {link.thumbnailUrl ? (
-                      <Image
-                          alt={link.title}
-                          className="aspect-video rounded-md object-cover"
-                          height="64"
-                          data-ai-hint="social media preview"
-                          src={link.thumbnailUrl}
-                          width="120"
-                      />
-                    ) : (
-                      <div className="flex aspect-video w-[120px] items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">No Thumbnail</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span className="font-semibold truncate max-w-48 md:max-w-xs">{link.title}</span>
-                      <span className="text-muted-foreground text-xs truncate max-w-48 md:max-w-xs">{link.longUrl}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">{link.shortCode}</Badge>
-                      <Copy className="h-4 w-4 text-muted-foreground cursor-pointer" onClick={() => handleCopy(link.shortCode)} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell text-right">{link.clicks.length.toLocaleString()}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                           <span className="cursor-default">{new Date(link.createdAt).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{new Date(link.createdAt).toLocaleString()}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                  <TableCell>
-                     <AlertDialog>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <NextLink href={`/dashboard/analytics/${link.id}`}>
-                                <BarChart2 className="mr-2 h-4 w-4" />
-                                Analytics
-                              </NextLink>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Edit className="mr-2 h-4 w-4" /> Edit
-                            </DropdownMenuItem>
-                            <AlertDialogTrigger asChild>
-                              <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </button>
-                            </AlertDialogTrigger>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the link and its analytics data.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(link.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
+    <>
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-end">
+          <CreateLinkDialog onAddLink={onAddLink} />
+        </div>
+        <div className="rounded-lg border shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="hidden w-[100px] sm:table-cell">
+                    <span className="sr-only">Thumbnail</span>
+                  </TableHead>
+                  <TableHead>Link</TableHead>
+                  <TableHead>Short Code</TableHead>
+                  <TableHead className="hidden md:table-cell text-right">Clicks</TableHead>
+                  <TableHead className="hidden md:table-cell">Created</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {links.map((link) => (
+                  <TableRow key={link.id}>
+                    <TableCell className="hidden sm:table-cell">
+                      {link.thumbnailUrl ? (
+                        <Image
+                            alt={link.title}
+                            className="aspect-video rounded-md object-cover"
+                            height="64"
+                            data-ai-hint="social media preview"
+                            src={link.thumbnailUrl}
+                            width="120"
+                        />
+                      ) : (
+                        <div className="flex aspect-video w-[120px] items-center justify-center rounded-md bg-muted text-xs text-muted-foreground">No Thumbnail</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-semibold truncate max-w-48 md:max-w-xs">{link.title}</span>
+                        <span className="text-muted-foreground text-xs truncate max-w-48 md:max-w-xs">{link.longUrl}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{link.shortCode}</Badge>
+                        <Copy className="h-4 w-4 text-muted-foreground cursor-pointer" onClick={() => handleCopy(link.shortCode)} />
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-right">{link.clicks.length.toLocaleString()}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                             <span className="cursor-default">{new Date(link.createdAt).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{new Date(link.createdAt).toLocaleString()}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>
+                       <AlertDialog>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <NextLink href={`/dashboard/analytics/${link.id}`}>
+                                  <BarChart2 className="mr-2 h-4 w-4" />
+                                  Analytics
+                                </NextLink>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(link)}>
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <AlertDialogTrigger asChild>
+                                <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive w-full">
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </button>
+                              </AlertDialogTrigger>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          <AlertDialogContent>
+                              <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete the link and its analytics data.
+                              </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(link.id)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                          </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+        </div>
       </div>
-    </div>
+      <EditLinkDialog 
+        isOpen={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        link={selectedLink}
+        onUpdateLink={onUpdateLink}
+      />
+    </>
   );
 }

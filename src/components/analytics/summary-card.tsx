@@ -6,6 +6,7 @@ import { summarizeLinkAnalytics } from "@/ai/flows/summarize-link-analytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, FileText } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
+import { useAiState } from "@/hooks/use-ai-state";
 
 function processAnalyticsData(link: Link) {
   const geoData: { [key: string]: number } = {};
@@ -34,8 +35,19 @@ export default function SummaryCard({ link }: { link: Link }) {
   const [summary, setSummary] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { status: aiStatus } = useAiState();
+  const isAiConfigured = aiStatus === 'valid';
 
   useEffect(() => {
+    if (!isAiConfigured) {
+        setSummary("AI is not configured. Please add a valid API key in settings to enable summaries.");
+        setLoading(false);
+        return;
+    }
+    
+    // Only run if the link data is available.
+    if (!link || !link.id) return;
+
     const fetchSummary = async () => {
       setLoading(true);
       setError(null);
@@ -57,7 +69,7 @@ export default function SummaryCard({ link }: { link: Link }) {
       }
     };
     fetchSummary();
-  }, [link]);
+  }, [link, isAiConfigured]);
 
   return (
     <Card className="lg:col-span-2">

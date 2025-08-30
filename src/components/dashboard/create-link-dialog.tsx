@@ -103,7 +103,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
         const newLink: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'> & { shortCode?: string } = {
             longUrl,
             title,
-            shortCode,
+            shortCode: shortCode || Math.random().toString(36).substring(2, 8),
             description,
             thumbnailUrl,
             redirectType,

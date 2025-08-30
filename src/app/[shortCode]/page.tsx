@@ -104,7 +104,7 @@ const getLoadingPageContent = (link: Link): string => {
     const config = usePerLinkConfig ? link.loadingPageConfig! : defaultConfig;
 
     // Check if loading pages are enabled at all
-    if (!config.enabled && !usePerLinkConfig) {
+    if (!config.enabled && !usePerLink-linkConfig) {
         return '<p>Redirecting...</p>';
     }
 
@@ -142,6 +142,14 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       setLink(null); // Explicitly set to null if not found
     }
   }, [shortCode]);
+  
+  // Update browser tab title
+  useEffect(() => {
+    if (link?.title) {
+        document.title = link.title;
+    }
+  }, [link]);
+
 
   // While we are figuring out the link, show a loading state.
   if (link === undefined) {
@@ -177,21 +185,24 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Redirecting...</title>
+        <title>${link.title || 'Redirecting...'}</title>
         <meta http-equiv="refresh" content="${delay};url=${link.longUrl}" />
+        <style>
+            html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+        </style>
         <script>
           // Use setTimeout as a fallback, but meta tag is primary for this feature
           setTimeout(function() { window.location.href = "${link.longUrl}"; }, ${delay * 1000});
         </script>
       </head>
-      <body style="margin:0; padding:0;">
+      <body>
         ${pageContent}
       </body>
       </html>
     `;
     
     return (
-        <div dangerouslySetInnerHTML={{ __html: fullHtml }} style={{width: '100%', height: '100vh'}} />
+        <div dangerouslySetInnerHTML={{ __html: fullHtml }} style={{width: '100vw', height: '100vh'}} />
     );
   }
 
