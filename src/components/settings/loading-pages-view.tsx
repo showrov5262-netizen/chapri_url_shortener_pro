@@ -12,6 +12,7 @@ import { Button } from "../ui/button";
 import { Eye, PlusCircle, Trash2, Edit } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { EditLoadingPageDialog } from "./edit-loading-page-dialog";
+import usePersistentState from "@/hooks/use-persistent-state";
 
 type LoadingPageSettings = Settings['loadingPageSettings'];
 
@@ -21,14 +22,14 @@ interface LoadingPagesViewProps {
 }
 
 export default function LoadingPagesView({ initialSettings, loadingPages: initialPages }: LoadingPagesViewProps) {
-  const [settings, setSettings] = useState<LoadingPageSettings>(initialSettings);
-  const [loadingPages, setLoadingPages] = useState<LoadingPage[]>(initialPages);
+  const [settings, setSettings] = usePersistentState<LoadingPageSettings>('loadingPageSettings', initialSettings);
+  const [loadingPages, setLoadingPages] = usePersistentState<LoadingPage[]>(
+    'customLoadingPages',
+    initialPages
+  );
+  
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<LoadingPage | null>(null);
-
-  const handleSettingChange = (key: keyof LoadingPageSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
 
   const handleCreateNew = () => {
     setEditingPage(null); // No page is being edited, so we are creating
@@ -41,7 +42,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
   }
 
   const handleSavePage = (pageData: LoadingPage) => {
-    if (editingPage) { // We are editing an existing page
+    if (editingPage && pageData.id) { // We are editing an existing page
       setLoadingPages(loadingPages.map(p => p.id === pageData.id ? pageData : p));
     } else { // We are creating a new page
       setLoadingPages([...loadingPages, { ...pageData, id: `lp-${Date.now()}` }]);
@@ -54,7 +55,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
     setLoadingPages(loadingPages.filter(p => p.id !== pageId));
     // If the deleted page was the selected one, reset the selection
     if (settings.selectedPageId === pageId) {
-        handleSettingChange('selectedPageId', null);
+        setSettings(prev => ({ ...prev, selectedPageId: null }));
     }
   }
 
@@ -78,7 +79,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
               </div>
               <Switch
                 checked={settings.enabled}
-                onCheckedChange={(checked) => handleSettingChange('enabled', checked)}
+                onCheckedChange={(checked) => setSettings(prev => ({...prev, enabled: checked}))}
               />
             </div>
 
@@ -86,7 +87,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
               <Label>Display Mode</Label>
               <RadioGroup
                 value={settings.mode}
-                onValueChange={(value: 'specific' | 'random') => handleSettingChange('mode', value)}
+                onValueChange={(value: 'specific' | 'random') => setSettings(prev => ({...prev, mode: value}))}
                 disabled={!settings.enabled}
               >
                 <div className="flex items-center space-x-2">
@@ -104,7 +105,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
               <Label htmlFor="select-page">Select a Page</Label>
               <Select
                 value={settings.selectedPageId ?? ""}
-                onValueChange={(value) => handleSettingChange('selectedPageId', value)}
+                onValueChange={(value) => setSettings(prev => ({...prev, selectedPageId: value}))}
                 disabled={!settings.enabled || settings.mode !== 'specific'}
               >
                 <SelectTrigger id="select-page">
@@ -139,7 +140,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
             </Button>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-              {loadingPages.map(page => (
+              {loadingPages.map((page) => (
                   <Card key={page.id}>
                       <CardHeader>
                           <CardTitle className="text-lg">{page.name}</CardTitle>
@@ -183,7 +184,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         This will permanently delete the "{page.name}" loading page design. This action cannot be undone.
-                                    </AlertDialogDescription>
+                                    </Description>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>

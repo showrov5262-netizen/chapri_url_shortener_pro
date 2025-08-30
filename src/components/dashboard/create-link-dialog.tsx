@@ -15,16 +15,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Upload, Globe, Smartphone, Users, X, Bot, Loader } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch } from "../ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
-import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLoadingPageConfig } from "@/types";
+import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLoadingPageConfig, LoadingPage } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { mockLoadingPages } from "@/lib/data";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
@@ -62,6 +61,21 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     const [usePixels, setUsePixels] = useState(false);
     const [useLoadingPageOverride, setUseLoadingPageOverride] = useState(false);
 
+    const [availableLoadingPages, setAvailableLoadingPages] = useState<LoadingPage[]>([]);
+
+    useEffect(() => {
+        if (open) {
+            // Load pages from localStorage when the dialog opens
+            try {
+                const item = window.localStorage.getItem('customLoadingPages');
+                if (item) {
+                    setAvailableLoadingPages(JSON.parse(item));
+                }
+            } catch (error) {
+                console.error("Failed to load loading pages from localStorage", error);
+            }
+        }
+    }, [open]);
 
     const addGeoTarget = () => setGeoTargets([...geoTargets, { country: '', url: '' }]);
     const removeGeoTarget = (index: number) => setGeoTargets(geoTargets.filter((_, i) => i !== index));
@@ -522,7 +536,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                                             <SelectValue placeholder="Select a loading page" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {mockLoadingPages.map(page => (
+                                            {availableLoadingPages.map(page => (
                                             <SelectItem key={page.id} value={page.id}>
                                                 {page.name}
                                             </SelectItem>
