@@ -15,12 +15,22 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 
 export default function AiConfigView() {
   const { toast } = useToast();
-  const { apiKey, setApiKey, status, setStatus, isChecking, setIsChecking } = useAiState();
+  const { 
+    apiKey, 
+    setApiKey, 
+    status, 
+    setStatus, 
+    isChecking, 
+    setIsChecking, 
+    errorMessage, 
+    setErrorMessage 
+  } = useAiState();
   const [showKey, setShowKey] = useState(false);
 
   const handleClearKey = () => {
     setApiKey('');
     setStatus('unknown');
+    setErrorMessage(null);
     toast({
         title: "API Key Cleared",
         description: "The local API key has been removed.",
@@ -37,6 +47,7 @@ export default function AiConfigView() {
         return;
     }
     setIsChecking(true);
+    setErrorMessage(null);
     try {
         const result = await validateApiKey({ apiKey });
         if (result.isValid) {
@@ -47,15 +58,17 @@ export default function AiConfigView() {
             });
         } else {
             setStatus('invalid');
+            setErrorMessage(result.error || "An unknown validation error occurred.");
             toast({
                 variant: "destructive",
                 title: "API Key is Invalid",
-                description: "Could not connect. Please check your key or generate a new one.",
+                description: "Could not connect. See the error message for details.",
             });
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
         setStatus('invalid');
+        setErrorMessage(error.message || "An unexpected error occurred.");
         toast({
             variant: "destructive",
             title: "Error Checking Status",
@@ -110,16 +123,26 @@ export default function AiConfigView() {
             </div>
         </div>
         
+        {status === 'invalid' && errorMessage && (
+            <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>Validation Error</AlertTitle>
+                <AlertDescription>
+                    <p className="font-mono text-xs break-all">{errorMessage}</p>
+                </AlertDescription>
+            </Alert>
+        )}
+
         <Alert>
           <Info className="h-4 w-4" />
           <AlertTitle>How to update your API Key</AlertTitle>
           <AlertDescription className="flex items-center justify-between">
-            <p>
-              For a deployed app, set the <code className="font-mono bg-muted p-1 rounded-sm">GEMINI_API_KEY</code> environment variable. This UI is for local testing.
+            <p className="text-xs">
+              For a deployed app, set the <code className="font-mono bg-muted p-1 rounded-sm text-xs">GEMINI_API_KEY</code> environment variable. This UI is for local testing.
             </p>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="secondary">
+                <Button variant="secondary" size="sm">
                   <HelpCircle className="h-4 w-4 mr-2"/>
                   Get a Key
                 </Button>
@@ -159,7 +182,6 @@ export default function AiConfigView() {
             {isChecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Check Status
           </Button>
-          <Button onClick={() => toast({ title: "API Key Saved Locally" })}>Save Key</Button>
         </div>
       </CardFooter>
     </Card>

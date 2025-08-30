@@ -11,6 +11,8 @@ interface AiStateContextProps {
   setStatus: (status: ApiStatus) => void;
   isChecking: boolean;
   setIsChecking: (isChecking: boolean) => void;
+  errorMessage: string | null;
+  setErrorMessage: (message: string | null) => void;
 }
 
 const AiStateContext = createContext<AiStateContextProps | undefined>(undefined);
@@ -19,11 +21,13 @@ const AiStateContext = createContext<AiStateContextProps | undefined>(undefined)
 // In a real app, you might use localStorage for persistence.
 let cachedApiKey = 'AIzaSyC83QPN6AFcfVmbZfR-XNMQzYHKj0U931E';
 let cachedApiStatus: ApiStatus = 'unknown';
+let cachedErrorMessage: string | null = null;
 
 export const AiStateProvider = ({ children }: { children: ReactNode }) => {
   const [apiKey, _setApiKey] = useState<string>(cachedApiKey);
   const [status, _setStatus] = useState<ApiStatus>(cachedApiStatus);
   const [isChecking, setIsChecking] = useState<boolean>(false);
+  const [errorMessage, _setErrorMessage] = useState<string | null>(cachedErrorMessage);
 
   const setApiKey = (key: string) => {
     cachedApiKey = key;
@@ -35,8 +39,13 @@ export const AiStateProvider = ({ children }: { children: ReactNode }) => {
     _setStatus(newStatus);
   }
 
+  const setErrorMessage = (message: string | null) => {
+    cachedErrorMessage = message;
+    _setErrorMessage(message);
+  }
+
   return (
-    <AiStateContext.Provider value={{ apiKey, setApiKey, status, setStatus, isChecking, setIsChecking }}>
+    <AiStateContext.Provider value={{ apiKey, setApiKey, status, setStatus, isChecking, setIsChecking, errorMessage, setErrorMessage }}>
       {children}
     </AiStateContext.Provider>
   );
