@@ -215,7 +215,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                   </div>
                    {useMetaRefresh && (
                     <div className="grid gap-2 pt-2">
-                      <Label htmlFor="redirect-delay" className="text-xs">Redirect Delay (seconds)</Label>
+                      <Label htmlFor="redirect-delay" className="text-xs">Redirect delay timer</Label>
                       <Input
                         id="redirect-delay"
                         type="number"
