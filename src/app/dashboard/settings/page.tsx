@@ -7,7 +7,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-3xl font-bold font-headline tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
-          Manage your link shortener features and security settings.
+          Manage global defaults for your link shortener features and security.
         </p>
       </div>
       <FeatureToggles initialSettings={mockSettings} />

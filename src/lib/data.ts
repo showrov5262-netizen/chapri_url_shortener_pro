@@ -54,9 +54,18 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=1',
     createdAt: '2024-07-15T10:00:00Z',
     clicks: generateClicks(1258, 30, 'AbC123'),
+    // New properties
+    redirectType: '301',
     isCloaked: false,
-    fakePreviewPageUrl: '',
+    useMetaRefresh: false,
+    password: null,
+    expiresAt: null,
+    maxClicks: null,
     spoof: null,
+    geoTargets: [],
+    deviceTargets: [],
+    abTestUrls: [],
+    retargetingPixels: [],
   },
   {
     id: '2',
@@ -66,9 +75,21 @@ export const mockLinks: Link[] = [
     description: 'A short link to the pull requests page of our main project repository.',
     createdAt: '2024-07-10T14:30:00Z',
     clicks: generateClicks(732, 45, 'GhPulls'),
+    // New properties
+    redirectType: '302',
     isCloaked: true,
-    fakePreviewPageUrl: '',
+    useMetaRefresh: false,
+    password: null,
+    expiresAt: null,
+    maxClicks: null,
     spoof: null,
+    geoTargets: [],
+    deviceTargets: [
+        { device: 'iOS', url: 'https://apps.apple.com/app/github' },
+        { device: 'Android', url: 'https://play.google.com/store/apps/details?id=com.github.android' }
+    ],
+    abTestUrls: [],
+    retargetingPixels: [],
   },
   {
     id: '3',
@@ -79,13 +100,27 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=2',
     createdAt: '2024-06-25T09:00:00Z',
     clicks: generateClicks(421, 60, 'ProjSpec'),
+    // New properties
+    redirectType: '302',
     isCloaked: false,
-    fakePreviewPageUrl: 'https://example.com/custom-preview-page',
+    useMetaRefresh: true,
+    password: 'supersecret',
+    expiresAt: '2024-08-30T23:59:59Z',
+    maxClicks: 500,
     spoof: {
       title: 'Project Alpha Specs [CONFIDENTIAL]',
       description: 'Internal use only. Do not distribute.',
       imageUrl: 'https://picsum.photos/1200/630?random=10',
     },
+    geoTargets: [
+        { country: 'US', url: 'https://example.com/us-ver' },
+        { country: 'GB', url: 'https://example.com/gb-ver' }
+    ],
+    deviceTargets: [],
+    abTestUrls: [],
+    retargetingPixels: [
+        { provider: 'Facebook', id: '123456789' }
+    ],
   },
   {
     id: '4',
@@ -95,9 +130,17 @@ export const mockLinks: Link[] = [
     description: 'Link to the official video tutorial for our product.',
     createdAt: '2024-05-20T18:00:00Z',
     clicks: generateClicks(2345, 90, 'VidTut'),
+    redirectType: '301',
     isCloaked: false,
-    fakePreviewPageUrl: '',
+    useMetaRefresh: false,
+    password: null,
+    expiresAt: null,
+    maxClicks: null,
     spoof: null,
+    geoTargets: [],
+    deviceTargets: [],
+    abTestUrls: [],
+    retargetingPixels: [],
   },
   {
     id: '5',
@@ -108,19 +151,35 @@ export const mockLinks: Link[] = [
     thumbnailUrl: 'https://picsum.photos/1200/630?random=3',
     createdAt: '2024-07-18T11:00:00Z',
     clicks: generateClicks(89, 20, 'BlogWflw'),
+    redirectType: '301',
     isCloaked: false,
-    fakePreviewPageUrl: '',
+    useMetaRefresh: false,
+    password: null,
+    expiresAt: null,
+    maxClicks: null,
     spoof: null,
+    geoTargets: [],
+    deviceTargets: [],
+    abTestUrls: [],
+    retargetingPixels: [],
   },
 ];
 
 export const mockSettings: Settings = {
+    // Security
     botDetection: true,
-    emailScannerProtection: true,
+    malwareProtection: true,
     captchaVerification: false,
     ipRateLimiting: true,
-    linkCloaking: false,
-    fakePreviewPages: true,
-    fakePreviewPageUrl: "https://example.com/global-preview",
-    spoofSocialPreviews: true,
+    
+    // Redirection
+    defaultRedirectType: '301',
+    linkCloaking: false, // Frame-based
+    metaRefresh: false,
+
+    // Advanced Features
+    passwordProtection: false,
+    linkExpiration: false,
+    geoTargeting: true,
+    deviceTargeting: true,
 }

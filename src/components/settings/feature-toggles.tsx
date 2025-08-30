@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "../ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Separator } from "../ui/separator";
 
 export default function FeatureToggles({ initialSettings }: { initialSettings: Settings }) {
   const [settings, setSettings] = useState(initialSettings);
@@ -19,11 +21,15 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
     setSettings(prev => ({...prev, [id]: value }));
   }
 
+  const handleSelectChange = (id: keyof Settings, value: string) => {
+    setSettings(prev => ({...prev, [id]: value }));
+  }
+
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle>Global Security Settings</CardTitle>
+          <CardTitle>Global Security</CardTitle>
           <CardDescription>
             Default security settings for all newly created links.
           </CardDescription>
@@ -43,16 +49,16 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="email-scanner" className="flex flex-col gap-1">
-                <span>Email Scanner Protection</span>
+            <Label htmlFor="malware-protection" className="flex flex-col gap-1">
+                <span>Phishing & Malware Protection</span>
                 <span className="font-normal text-muted-foreground text-xs">
-                    Protect against preview bots in emails.
+                    Block known malicious destination URLs.
                 </span>
             </Label>
             <Switch
-              id="emailScannerProtection"
-              checked={settings.emailScannerProtection}
-              onCheckedChange={() => handleToggle('emailScannerProtection')}
+              id="malwareProtection"
+              checked={settings.malwareProtection}
+              onCheckedChange={() => handleToggle('malwareProtection')}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -84,19 +90,35 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
         </CardContent>
       </Card>
       
-      <Card>
+      <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle>Global Link Behavior</CardTitle>
+          <CardTitle>Redirection Methods</CardTitle>
           <CardDescription>
-            Default behavior and customization for new links.
+            Default redirection behavior for new links.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+           <div className="space-y-3">
+             <Label>Default Redirect Type</Label>
+             <Select 
+                value={settings.defaultRedirectType} 
+                onValueChange={(value) => handleSelectChange('defaultRedirectType', value)}
+              >
+               <SelectTrigger>
+                 <SelectValue placeholder="Select redirect type" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="301">301 Permanent</SelectItem>
+                 <SelectItem value="302">302 Temporary</SelectItem>
+               </SelectContent>
+             </Select>
+           </div>
+           <Separator />
            <div className="flex items-center justify-between">
             <Label htmlFor="link-cloaking" className="flex flex-col gap-1">
-                <span>Link Cloaking</span>
+                <span>Frame-based Cloaking</span>
                  <span className="font-normal text-muted-foreground text-xs">
-                    Enable link cloaking by default for new links.
+                    Enable URL masking by default.
                 </span>
             </Label>
             <Switch
@@ -105,45 +127,82 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
               onCheckedChange={() => handleToggle('linkCloaking')}
             />
           </div>
-          <div className="space-y-3 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="fake-previews" className="flex flex-col gap-1">
-                  <span>Fake Preview Pages</span>
-                  <span className="font-normal text-muted-foreground text-xs">
-                      Enable intermediate preview pages by default.
-                  </span>
-              </Label>
-              <Switch
-                id="fakePreviewPages"
-                checked={settings.fakePreviewPages}
-                onCheckedChange={() => handleToggle('fakePreviewPages')}
-              />
-            </div>
-            {settings.fakePreviewPages && (
-              <div className="grid gap-2 pt-2">
-                <Label htmlFor="fakePreviewPageUrl" className="text-xs">Default Fake Preview URL</Label>
-                <Input 
-                  id="fakePreviewPageUrl"
-                  placeholder="https://example.com/default-preview" 
-                  value={settings.fakePreviewPageUrl}
-                  onChange={handleInputChange}
-                />
-              </div>
-            )}
-          </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="spoof-previews" className="flex flex-col gap-1">
-                <span>Spoof Social Previews</span>
+            <Label htmlFor="meta-refresh" className="flex flex-col gap-1">
+                <span>Meta Refresh Redirect</span>
                  <span className="font-normal text-muted-foreground text-xs">
-                    Allow customizing social previews by default.
+                    Use meta refresh as default redirect.
                 </span>
             </Label>
             <Switch
-              id="spoofSocialPreviews"
-              checked={settings.spoofSocialPreviews}
-              onCheckedChange={() => handleToggle('spoofSocialPreviews')}
+              id="metaRefresh"
+              checked={settings.metaRefresh}
+              onCheckedChange={() => handleToggle('metaRefresh')}
             />
           </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="lg:col-span-1">
+        <CardHeader>
+          <CardTitle>Advanced Features</CardTitle>
+          <CardDescription>
+            Enable or disable advanced features by default.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Label className="flex flex-col gap-1">
+                  <span>Password Protection</span>
+                  <span className="font-normal text-muted-foreground text-xs">
+                      Enable password protection by default.
+                  </span>
+              </Label>
+              <Switch
+                id="passwordProtection"
+                checked={settings.passwordProtection}
+                onCheckedChange={() => handleToggle('passwordProtection')}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="flex flex-col gap-1">
+                  <span>Link Expiration</span>
+                  <span className="font-normal text-muted-foreground text-xs">
+                      Enable expiration settings by default.
+                  </span>
+              </Label>
+              <Switch
+                id="linkExpiration"
+                checked={settings.linkExpiration}
+                onCheckedChange={() => handleToggle('linkExpiration')}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="flex flex-col gap-1">
+                  <span>Geo-Targeting</span>
+                  <span className="font-normal text-muted-foreground text-xs">
+                      Allow geo-targeting by default.
+                  </span>
+              </Label>
+              <Switch
+                id="geoTargeting"
+                checked={settings.geoTargeting}
+                onCheckedChange={() => handleToggle('geoTargeting')}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="flex flex-col gap-1">
+                  <span>Device Targeting</span>
+                  <span className="font-normal text-muted-foreground text-xs">
+                      Allow device targeting by default.
+                  </span>
+              </Label>
+              <Switch
+                id="deviceTargeting"
+                checked={settings.deviceTargeting}
+                onCheckedChange={() => handleToggle('deviceTargeting')}
+              />
+            </div>
         </CardContent>
       </Card>
     </div>
