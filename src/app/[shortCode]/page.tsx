@@ -43,19 +43,24 @@ const getLoadingPageContent = (link: Link): string => {
         ? link.loadingPageConfig
         : mockSettings.loadingPageSettings;
 
-    if (!config.enabled && !link.useMetaRefresh) {
-        return '';
+    // The feature must be enabled either globally or on the link to show a page
+    if (!config.enabled && !(link.loadingPageConfig && !link.loadingPageConfig.useGlobal)) {
+        return '<p>Redirecting...</p>'; // Return fallback if disabled
     }
 
-    let pageId = null;
+    let pageId: string | null = null;
+    const effectiveMode = (link.loadingPageConfig && !link.loadingPageConfig.useGlobal) ? link.loadingPageConfig.mode : config.mode;
 
-    if (config.mode === 'random') {
+
+    if (effectiveMode === 'random') {
         if (mockLoadingPages.length > 0) {
             const randomIndex = Math.floor(Math.random() * mockLoadingPages.length);
             pageId = mockLoadingPages[randomIndex].id;
         }
-    } else if (config.mode === 'specific') {
-        pageId = config.selectedPageId;
+    } else if (effectiveMode === 'specific') {
+        pageId = (link.loadingPageConfig && link.loadingPageConfig.selectedPageId)
+            ? link.loadingPageConfig.selectedPageId
+            : config.selectedPageId;
     }
 
     const page = mockLoadingPages.find(p => p.id === pageId);
