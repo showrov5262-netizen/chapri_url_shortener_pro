@@ -1,51 +1,91 @@
 // src/app/[shortCode]/page.tsx
-import { mockLinks, mockLoadingPages, mockSettings } from '@/lib/data';
+'use client'
+
+import { useState, useEffect } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import type { Link } from '@/types';
+import type { Link, Click } from '@/types';
+import { mockLinks as initialMockLinks, mockLoadingPages, mockSettings } from '@/lib/data';
 
-// This function generates metadata for the page (e.g., for social media previews)
-export async function generateMetadata({ params }: { params: { shortCode: string } }): Promise<Metadata> {
-  const link = mockLinks.find((l) => l.shortCode === params.shortCode);
-
-  if (!link) {
-    return {
-      title: 'Link Not Found',
-    };
+// --- Client-side Data Management ---
+// In a real app, this would be an API call to a database.
+// For this prototype, we use localStorage to simulate persistence.
+const getLinksFromStorage = (): Link[] => {
+  if (typeof window === 'undefined') {
+    return initialMockLinks;
   }
+  try {
+    const item = window.localStorage.getItem('mockLinksData');
+    return item ? JSON.parse(item) : initialMockLinks;
+  } catch (error) {
+    console.error("Failed to parse links from localStorage", error);
+    return initialMockLinks;
+  }
+};
 
-  // Use spoof data if available, otherwise use the link's own data
-  const title = link.spoof?.title || link.title;
-  const description = link.spoof?.description || link.description;
-  const imageUrl = link.spoof?.imageUrl || link.thumbnailUrl;
+const addClickToLinkInStorage = (shortCode: string) => {
+    if (typeof window === 'undefined') return;
 
-  return {
-    title: title,
-    description: description,
-    openGraph: {
-      title: title,
-      description: description,
-      images: imageUrl ? [imageUrl] : [],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: title,
-      description: description,
-      images: imageUrl ? [imageUrl] : [],
-    },
-  };
-}
+    const links = getLinksFromStorage();
+    const linkIndex = links.findIndex((l) => l.shortCode === shortCode);
+
+    if (linkIndex !== -1) {
+        const newClick: Click = {
+            id: `${shortCode}-click-${Date.now()}`,
+            clickedAt: new Date().toISOString(),
+            ipAddress: `203.0.113.${Math.floor(Math.random() * 255)}`,
+            userAgent: navigator.userAgent,
+            referrer: document.referrer || 'direct',
+            country: 'Unknown',
+            city: 'Unknown',
+            region: 'N/A',
+            isp: 'Unknown ISP',
+            organization: 'Unknown Org',
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            language: navigator.language,
+            device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+            deviceModel: null,
+            deviceBrand: null,
+            browser: 'Other',
+            browserVersion: 'N/A',
+            browserEngine: 'N/A',
+            os: 'Other',
+            osVersion: 'N/A',
+            screenResolution: `${window.screen.width}x${window.screen.height}`,
+            isBot: false,
+            isEmailScanner: false,
+        };
+
+        links[linkIndex].clicks.unshift(newClick); // Add to the beginning of the array
+
+        try {
+            window.localStorage.setItem('mockLinksData', JSON.stringify(links));
+        } catch (error) {
+            console.error("Failed to save updated links to localStorage", error);
+        }
+    }
+};
+
+
+// This is a placeholder for metadata generation as it needs to be server-side
+// In a real app, you would fetch this data from an API before the page loads.
+// For now, we rely on client-side fetching to find the link.
+// export async function generateMetadata({ params }: { params: { shortCode: string } }): Promise<Metadata> {
+//   // This part is tricky without a database. We cannot easily access localStorage on the server.
+//   // We will return generic metadata and handle the title client-side.
+//   return {
+//     title: 'Redirecting...',
+//   };
+// }
 
 
 const getLoadingPageContent = (link: Link): string => {
-    // Determine which settings to use (link-specific or global)
     const config = (link.useMetaRefresh && link.loadingPageConfig && !link.loadingPageConfig.useGlobal)
         ? link.loadingPageConfig
         : mockSettings.loadingPageSettings;
 
-    // The feature must be enabled either globally or on the link to show a page
     if (!config.enabled && !(link.loadingPageConfig && !link.loadingPageConfig.useGlobal)) {
-        return '<p>Redirecting...</p>'; // Return fallback if disabled
+        return '<p>Redirecting...</p>';
     }
 
     let pageId: string | null = null;
@@ -64,16 +104,38 @@ const getLoadingPageContent = (link: Link): string => {
     }
 
     const page = mockLoadingPages.find(p => p.id === pageId);
-    return page ? page.content : '<p>Redirecting...</p>'; // Fallback content
+    return page ? page.content : '<p>Redirecting...</p>';
 }
 
 export default function ShortLinkRedirectPage({ params }: { params: { shortCode: string } }) {
   const { shortCode } = params;
-  const link = mockLinks.find((l) => l.shortCode === shortCode);
+  const [link, setLink] = useState<Link | null | undefined>(undefined);
 
+  useEffect(() => {
+    // This effect runs only on the client-side
+    const allLinks = getLinksFromStorage();
+    const foundLink = allLinks.find((l) => l.shortCode === shortCode);
+
+    if (foundLink) {
+      // LOG THE CLICK!
+      addClickToLinkInStorage(shortCode);
+      setLink(foundLink);
+    } else {
+      setLink(null); // Explicitly set to null if not found
+    }
+  }, [shortCode]);
+
+  // While we are figuring out the link, show a loading state.
+  if (link === undefined) {
+    return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Loading link...</div>;
+  }
+  
+  // If the link is null (not found after checking), show 404.
   if (!link) {
     notFound();
   }
+
+  // --- REDIRECTION LOGIC ---
 
   // Handle Frame-based Cloaking
   if (link.isCloaked) {
@@ -97,10 +159,11 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       <!DOCTYPE html>
       <html>
       <head>
-        <meta http-equiv="refresh" content="${delay};url=${link.longUrl}" />
+        <meta http-equiv="refresh" content="0;url=${link.longUrl}" />
         <title>Redirecting...</title>
       </head>
       <body style="margin:0; padding:0;">
+        <script>setTimeout(function() { window.location.href = "${link.longUrl}"; }, ${delay * 1000});</script>
         ${pageContent}
       </body>
       </html>
@@ -111,10 +174,11 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
     );
   }
 
-  // Default: Standard Redirect
-  // Use 301 for permanent, 302 (default for redirect()) for temporary
-  redirect(link.longUrl, link.redirectType === '301' ? 'permanent' : 'push');
-
-  // This part is never reached due to the redirect, but it's required for type safety.
-  return null;
+  // Default: Standard Redirect (using client-side redirect)
+  if (typeof window !== 'undefined') {
+      window.location.href = link.longUrl;
+  }
+  
+  // Fallback while the redirect happens
+  return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Redirecting you now...</div>;
 }

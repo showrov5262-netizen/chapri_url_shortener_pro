@@ -1,12 +1,41 @@
-import { mockLinks } from "@/lib/data";
-import { notFound } from "next/navigation";
+'use client'
+
+import { useState, useEffect } from "react";
+import { notFound, useParams } from "next/navigation";
 import AnalyticsView from "@/components/analytics/analytics-view";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { Link as LinkType } from "@/types";
+import { mockLinks as initialMockLinks } from "@/lib/data";
 
-export default function AnalyticsPage({ params }: { params: { linkId: string } }) {
-  const link = mockLinks.find((l) => l.id === params.linkId);
+const getLinkFromStorage = (linkId: string): LinkType | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const item = window.localStorage.getItem('mockLinksData');
+    const allLinks = item ? JSON.parse(item) : initialMockLinks;
+    return allLinks.find((l: LinkType) => l.id === linkId);
+  } catch (error) {
+    console.error(error);
+    return initialMockLinks.find(l => l.id === linkId);
+  }
+};
+
+
+export default function AnalyticsPage() {
+  const params = useParams();
+  const linkId = Array.isArray(params.linkId) ? params.linkId[0] : params.linkId;
+  const [link, setLink] = useState<LinkType | undefined | null>(undefined);
+
+  useEffect(() => {
+    if (linkId) {
+      setLink(getLinkFromStorage(linkId));
+    }
+  }, [linkId]);
+  
+  if (link === undefined) {
+    return <div>Loading analytics...</div>; // Or a skeleton loader
+  }
 
   if (!link) {
     notFound();

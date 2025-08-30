@@ -1,27 +1,66 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StatsCards from "@/components/dashboard/stats-cards";
 import LinksTable from "@/components/dashboard/links-table";
-import { mockLinks } from "@/lib/data";
+import { mockLinks as initialMockLinks } from "@/lib/data";
 import type { Link } from "@/types";
 
+// In a real app, this would be an API call to a database.
+// For this prototype, we use localStorage to simulate persistence.
+const useLinksState = () => {
+  const [links, setLinks] = useState<Link[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // This effect runs only on the client-side
+    if (typeof window !== 'undefined') {
+      try {
+        const item = window.localStorage.getItem('mockLinksData');
+        setLinks(item ? JSON.parse(item) : initialMockLinks);
+      } catch (error) {
+        console.error("Failed to parse links from localStorage", error);
+        setLinks(initialMockLinks);
+      } finally {
+        setIsLoaded(true);
+      }
+    }
+  }, []);
+
+  const updateLinks = (newLinks: Link[]) => {
+    setLinks(newLinks);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('mockLinksData', JSON.stringify(newLinks));
+      } catch (error) {
+        console.error("Failed to save links to localStorage", error);
+      }
+    }
+  };
+
+  return { links, updateLinks, isLoaded };
+};
+
 export default function DashboardPage() {
-  const [links, setLinks] = useState<Link[]>(mockLinks);
+  const { links, updateLinks, isLoaded } = useLinksState();
 
   const addLink = (newLinkData: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => {
     const newLink: Link = {
       ...newLinkData,
-      id: (links.length + 2).toString(),
+      id: `link-${Date.now()}`,
       shortCode: newLinkData.shortCode || Math.random().toString(36).substring(2, 8),
       createdAt: new Date().toISOString(),
       clicks: [],
     };
-    setLinks(prevLinks => [newLink, ...prevLinks]);
+    updateLinks([newLink, ...links]);
   };
 
   const deleteLink = (linkId: string) => {
-    setLinks(prevLinks => prevLinks.filter(link => link.id !== linkId));
+    updateLinks(links.filter(link => link.id !== linkId));
+  }
+
+  if (!isLoaded) {
+      return <div>Loading links...</div>; // Or a proper skeleton loader
   }
 
   return (
