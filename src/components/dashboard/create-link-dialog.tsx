@@ -37,6 +37,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     const [title, setTitle] = useState('');
     const [shortCode, setShortCode] = useState('');
     const [description, setDescription] = useState('');
+    const [thumbnailUrl, setThumbnailUrl] = useState('');
 
     const [isCloaked, setIsCloaked] = useState(false);
     const [useMetaRefresh, setUseMetaRefresh] = useState(false);
@@ -104,6 +105,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             title,
             shortCode,
             description,
+            thumbnailUrl,
             redirectType,
             isCloaked,
             useMetaRefresh,
@@ -130,6 +132,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
         setTitle('');
         setShortCode('');
         setDescription('');
+        setThumbnailUrl('');
     };
 
   return (
@@ -184,6 +187,15 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
               placeholder="A brief description for internal reference."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+           <div className="grid gap-2">
+            <Label htmlFor="thumbnail-url">Thumbnail Image URL (Optional)</Label>
+            <Input
+              id="thumbnail-url"
+              placeholder="https://example.com/image.png"
+              value={thumbnailUrl}
+              onChange={(e) => setThumbnailUrl(e.target.value)}
             />
           </div>
           
@@ -273,17 +285,8 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                            <Textarea id="spoof-description" placeholder="You won't believe what happens next." onChange={(e) => setSpoof(s => ({...s!, description: e.target.value}))} />
                         </div>
                         <div className="grid gap-2">
-                          <Label className="text-xs">Spoofed Thumbnail</Label>
-                           <div className="flex items-center justify-center w-full">
-                              <label htmlFor="dropzone-file-spoof" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/80">
-                                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                      <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                      <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                      <p className="text-xs text-muted-foreground">PNG, JPG or GIF (MAX. 1200x630px)</p>
-                                  </div>
-                                  <input id="dropzone-file-spoof" type="file" className="hidden" />
-                              </label>
-                          </div> 
+                          <Label className="text-xs" htmlFor="spoof-image-url">Spoofed Thumbnail URL</Label>
+                           <Input id="spoof-image-url" placeholder="https://example.com/spoof-image.png" onChange={(e) => setSpoof(s => ({...s!, imageUrl: e.target.value}))} />
                         </div>
                       </div>
                     )}
