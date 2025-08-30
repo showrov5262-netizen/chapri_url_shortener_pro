@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect } from "react";
@@ -17,7 +18,13 @@ const useLinksState = () => {
     if (typeof window !== 'undefined') {
       try {
         const item = window.localStorage.getItem('mockLinksData');
-        setLinks(item ? JSON.parse(item) : initialMockLinks);
+        // Initialize with default mock data if localStorage is empty
+        if (!item) {
+          window.localStorage.setItem('mockLinksData', JSON.stringify(initialMockLinks));
+          setLinks(initialMockLinks);
+        } else {
+          setLinks(JSON.parse(item));
+        }
       } catch (error) {
         console.error("Failed to parse links from localStorage", error);
         setLinks(initialMockLinks);
@@ -44,11 +51,10 @@ const useLinksState = () => {
 export default function DashboardPage() {
   const { links, updateLinks, isLoaded } = useLinksState();
 
-  const addLink = (newLinkData: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => {
+  const addLink = (newLinkData: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => {
     const newLink: Link = {
       ...newLinkData,
       id: `link-${Date.now()}`,
-      shortCode: newLinkData.shortCode || Math.random().toString(36).substring(2, 8),
       createdAt: new Date().toISOString(),
       clicks: [],
     };

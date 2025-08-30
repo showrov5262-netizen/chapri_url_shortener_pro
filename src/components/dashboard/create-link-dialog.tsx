@@ -28,7 +28,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
-export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => void }) {
+export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => void }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     
@@ -100,10 +100,10 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             return;
         }
 
-        const newLink: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'> & { shortCode?: string } = {
+        const newLink: Omit<Link, 'id' | 'createdAt' | 'clicks'> = {
             longUrl,
             title,
-            shortCode: shortCode || Math.random().toString(36).substring(2, 8),
+            shortCode: shortCode.trim() || Math.random().toString(36).substring(2, 8),
             description,
             thumbnailUrl,
             redirectType,

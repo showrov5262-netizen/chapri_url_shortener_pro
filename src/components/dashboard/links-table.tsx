@@ -46,7 +46,7 @@ import {
 
 interface LinksTableProps {
   links: LinkType[];
-  onAddLink: (newLinkData: Omit<LinkType, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => void;
+  onAddLink: (newLinkData: Omit<LinkType, 'id' | 'createdAt' | 'clicks'>) => void;
   onUpdateLink: (updatedLink: LinkType) => void;
   onDeleteLink: (linkId: string) => void;
 }

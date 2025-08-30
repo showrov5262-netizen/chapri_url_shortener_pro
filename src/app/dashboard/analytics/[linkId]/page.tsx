@@ -107,8 +107,10 @@ export default function AnalyticsPage() {
             </AlertDescription>
         </Alert>
       )}
+      
+      {/* Only render AnalyticsView if link is fully loaded to prevent crashes */}
+      {link && <AnalyticsView link={link} />}
 
-      <AnalyticsView link={link} />
     </div>
   );
 }
