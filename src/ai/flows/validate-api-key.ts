@@ -32,7 +32,7 @@ export async function validateApiKey(input: ValidateApiKeyInput): Promise<Valida
   try {
     // A lightweight, low-cost operation to check if the key works.
     await testAi.generate({
-        model: 'googleai/gemini-pro',
+        model: 'googleai/gemini-2.5-flash',
         prompt: "test",
         config: {
             maxOutputTokens: 1
