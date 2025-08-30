@@ -17,7 +17,7 @@ const AiStateContext = createContext<AiStateContextProps | undefined>(undefined)
 
 // A simple in-memory cache that lasts for the session.
 // In a real app, you might use localStorage for persistence.
-let cachedApiKey = '';
+let cachedApiKey = 'AIzaSyC83QPN6AFcfVmbZfR-XNMQzYHKj0U931E';
 let cachedApiStatus: ApiStatus = 'unknown';
 
 export const AiStateProvider = ({ children }: { children: ReactNode }) => {
