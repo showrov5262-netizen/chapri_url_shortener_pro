@@ -1,1 +1,5 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/analyze-link-analytics-for-bots.ts';
+import '@/ai/flows/summarize-link-analytics.ts';
