@@ -17,39 +17,58 @@ interface AiStateContextProps {
 
 const AiStateContext = createContext<AiStateContextProps | undefined>(undefined);
 
-// A simple in-memory cache that lasts for the session.
-// In a real app, you might use localStorage for persistence.
-let cachedApiKey = '';
-let cachedApiStatus: ApiStatus = 'unknown';
-let cachedErrorMessage: string | null = null;
+// Use sessionStorage to persist the key for the current browser session.
+const getInitialState = () => {
+  if (typeof window === 'undefined') {
+    return { apiKey: '', status: 'unknown' as ApiStatus, errorMessage: null };
+  }
+  const apiKey = window.sessionStorage.getItem('geminiApiKey') || '';
+  const status = (window.sessionStorage.getItem('geminiApiStatus') as ApiStatus) || 'unknown';
+  const errorMessage = window.sessionStorage.getItem('geminiApiError') || null;
+  return { apiKey, status, errorMessage };
+};
+
 
 export const AiStateProvider = ({ children }: { children: ReactNode }) => {
-  const [apiKey, _setApiKey] = useState<string>(cachedApiKey);
-  const [status, _setStatus] = useState<ApiStatus>(cachedApiStatus);
+  const [apiKey, _setApiKey] = useState<string>(getInitialState().apiKey);
+  const [status, _setStatus] = useState<ApiStatus>(getInitialState().status);
   const [isChecking, setIsChecking] = useState<boolean>(false);
-  const [errorMessage, _setErrorMessage] = useState<string | null>(cachedErrorMessage);
+  const [errorMessage, _setErrorMessage] = useState<string | null>(getInitialState().errorMessage);
 
   const setApiKey = (key: string) => {
-    cachedApiKey = key;
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('geminiApiKey', key);
+    }
     _setApiKey(key);
   };
 
   const setStatus = (newStatus: ApiStatus) => {
-    cachedApiStatus = newStatus;
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem('geminiApiStatus', newStatus);
+    }
     _setStatus(newStatus);
   }
 
   const setErrorMessage = (message: string | null) => {
-    cachedErrorMessage = message;
+     if (typeof window !== 'undefined') {
+      if (message) {
+        window.sessionStorage.setItem('geminiApiError', message);
+      } else {
+        window.sessionStorage.removeItem('geminiApiError');
+      }
+    }
     _setErrorMessage(message);
   }
   
   // When the provider loads, automatically set the status to checking if there is a key.
   useEffect(() => {
-    if (apiKey) {
-      _setStatus('unknown');
+    const initialState = getInitialState();
+    if (initialState.apiKey) {
+      _setApiKey(initialState.apiKey);
+      _setStatus(initialState.status);
+      _setErrorMessage(initialState.errorMessage);
     }
-  }, [apiKey]);
+  }, []);
 
 
   return (

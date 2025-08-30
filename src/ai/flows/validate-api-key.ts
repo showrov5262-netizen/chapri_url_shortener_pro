@@ -24,23 +24,41 @@ export type ValidateApiKeyOutput = z.infer<typeof ValidateApiKeyOutputSchema>;
 export async function validateApiKey(input: ValidateApiKeyInput): Promise<ValidateApiKeyOutput> {
   // This flow does not need to be defined with ai.defineFlow because it creates its own
   // temporary Genkit instance to test the provided key.
+  
+  // Trim whitespace from the API key, which is a common copy-paste error.
+  const trimmedApiKey = input.apiKey.trim();
+  if (!trimmedApiKey) {
+    return { isValid: false, error: "API key is empty." };
+  }
 
   const testAi = genkit({
-    plugins: [googleAI({ apiKey: input.apiKey })],
+    plugins: [googleAI({ apiKey: trimmedApiKey })],
   });
 
   try {
     // A lightweight, low-cost operation to check if the key works.
     await testAi.generate({
-        model: 'googleai/gemini-2.5-flash',
+        model: 'gemini-pro', // Using a stable model for validation
         prompt: "test",
         config: {
-            maxOutputTokens: 1
+            maxOutputTokens: 1,
+            temperature: 0
         }
     });
     return { isValid: true };
   } catch (e: any) {
-    console.error("API Key validation failed:", e.message);
-    return { isValid: false, error: e.message };
+    console.error("API Key validation failed:", e);
+    // Provide a more user-friendly error message
+    let errorMessage = "An unknown error occurred.";
+    if (e.message) {
+      if (e.message.includes('API key not valid')) {
+        errorMessage = 'The provided API key is not valid. Please check the key and try again.';
+      } else if (e.message.includes('500')) {
+        errorMessage = `[Google AI Server Error]: ${e.message}. This may be a temporary issue with the service. Please try again later.`;
+      } else {
+        errorMessage = e.message;
+      }
+    }
+    return { isValid: false, error: errorMessage };
   }
 }

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, CheckCircle2, XCircle, Loader2, Trash2, Eye, EyeOff, HelpCircle } from "lucide-react";
+import { Info, CheckCircle2, XCircle, Loader2, Trash2, Eye, EyeOff, HelpCircle, Save } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { validateApiKey } from "@/ai/flows/validate-api-key";
 import { useAiState } from "@/hooks/use-ai-state";
@@ -26,20 +26,32 @@ export default function AiConfigView() {
     errorMessage, 
     setErrorMessage 
   } = useAiState();
+  const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [showKey, setShowKey] = useState(false);
 
   const handleClearKey = () => {
-    setApiKey('');
+    setLocalApiKey('');
+    setApiKey(''); // Clear global state
     setStatus('unknown');
     setErrorMessage(null);
     toast({
         title: "API Key Cleared",
-        description: "The local API key has been removed.",
+        description: "The local API key has been removed from session storage.",
     });
   }
+  
+  const handleSaveKey = () => {
+    setApiKey(localApiKey);
+    setStatus('unknown'); // Reset status until checked
+    setErrorMessage(null);
+    toast({
+        title: "API Key Saved",
+        description: "Your API key has been saved to your session. Check its status to validate.",
+    });
+  };
 
   const handleCheckStatus = async () => {
-    if (!apiKey) {
+    if (!localApiKey) {
         toast({
             variant: "destructive",
             title: "API Key Missing",
@@ -51,7 +63,10 @@ export default function AiConfigView() {
     setStatus('checking');
     setErrorMessage(null);
     try {
-        const result = await validateApiKey({ apiKey });
+        // Save the key before checking it
+        setApiKey(localApiKey);
+        const result = await validateApiKey({ apiKey: localApiKey });
+
         if (result.isValid) {
             setStatus('valid');
             toast({
@@ -115,8 +130,8 @@ export default function AiConfigView() {
                 id="api-key"
                 type={showKey ? "text" : "password"}
                 placeholder="Enter your Google AI Studio API key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                value={localApiKey}
+                onChange={(e) => setLocalApiKey(e.target.value)}
               />
               <Button variant="outline" size="icon" onClick={() => setShowKey(!showKey)}>
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -145,7 +160,7 @@ export default function AiConfigView() {
                     For a deployed app, set the <code className="font-mono bg-muted p-1 rounded-sm text-xs">GEMINI_API_KEY</code> environment variable. This UI is for local testing.
                     </p>
                     <p className="text-xs text-muted-foreground">
-                        Your key is compatible with both free and paid Gemini plans.
+                        Your key is stored in session storage and is not sent to any server except Google's.
                     </p>
                 </div>
                 <AlertDialog>
@@ -166,7 +181,7 @@ export default function AiConfigView() {
                             <li>Sign in with your Google account.</li>
                             <li>Click on <strong>"Create API key in new project"</strong>.</li>
                             <li>Copy the generated API key.</li>
-                            <li>Paste it into the input field on this page and click "Check Status".</li>
+                            <li>Paste it into the input field on this page and click "Save Key", then "Check Status".</li>
                           </ol>
                           <p>Make sure to keep your API key secure and do not share it publicly.</p>
                         </div>
@@ -182,13 +197,17 @@ export default function AiConfigView() {
         </Alert>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="destructive" onClick={handleClearKey} disabled={!apiKey}>
+        <Button variant="destructive" onClick={handleClearKey} disabled={!localApiKey}>
             <Trash2 className="h-4 w-4 mr-2" />
             Clear Key
         </Button>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={handleCheckStatus} disabled={isChecking || !apiKey}>
-            {isChecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+          <Button variant="outline" onClick={handleSaveKey} disabled={!localApiKey}>
+            <Save className="h-4 w-4 mr-2" />
+            Save Key
+          </Button>
+          <Button variant="secondary" onClick={handleCheckStatus} disabled={isChecking || !localApiKey}>
+            {isChecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
             Check Status
           </Button>
         </div>
