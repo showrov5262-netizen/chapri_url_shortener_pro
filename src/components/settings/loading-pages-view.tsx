@@ -184,7 +184,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
                                         This will permanently delete the "{page.name}" loading page design. This action cannot be undone.
-                                    </Description>
+                                    </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
