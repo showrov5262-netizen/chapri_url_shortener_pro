@@ -26,8 +26,7 @@ import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLo
 import { useToast } from "@/hooks/use-toast";
 import { mockLoadingPages } from "@/lib/data";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
 export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => void }) {
@@ -458,7 +457,21 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             </AccordionItem>
 
             <AccordionItem value="loading-page-options" disabled={!useMetaRefresh}>
-              <AccordionTrigger className="text-sm font-semibold">Loading Page</AccordionTrigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                     <AccordionTrigger className="text-sm font-semibold" disabled={!useMetaRefresh}>
+                      Loading Page
+                    </AccordionTrigger>
+                  </TooltipTrigger>
+                  {!useMetaRefresh && (
+                  <TooltipContent>
+                    <p>Enable "Meta Refresh Redirect" under Redirection Options to configure a loading page.</p>
+                  </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+
               <AccordionContent className="pt-4 space-y-6">
                 <div className="rounded-lg border p-3 shadow-sm space-y-3">
                     <div className="flex items-center justify-between">
@@ -529,5 +542,3 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     </Dialog>
   );
 }
-
-    
