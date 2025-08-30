@@ -14,7 +14,7 @@ import {
   Settings,
   Link as LinkIcon,
   LogOut,
-  UserCircle,
+  Loader,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -42,6 +42,18 @@ export function AppSidebar() {
               <Link href="/dashboard">
                 <LayoutDashboard />
                 <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/dashboard/loading-pages")}
+              tooltip="Loading Pages"
+            >
+              <Link href="/dashboard/loading-pages">
+                <Loader />
+                <span>Loading Pages</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -3,7 +3,7 @@ import { mockSettings } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronRight, Loader } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -39,10 +39,10 @@ export default function SettingsPage() {
             </CardDescription>
             </CardHeader>
             <CardContent>
-                <Link href="/dashboard/settings/loading-pages">
+                <Link href="/dashboard/loading-pages">
                     <Button variant="outline">
                         Manage Loading Pages
-                        <Loader className="h-4 w-4 mr-2" />
+                        <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                 </Link>
             </CardContent>
