@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
-import type { Link, Click } from '@/types';
-import { mockLinks as initialMockLinks, mockLoadingPages, mockSettings } from '@/lib/data';
+import type { Link, Click, LoadingPage, Settings } from '@/types';
+import { mockLinks as initialMockLinks } from '@/lib/data';
 
 // --- Client-side Data Management ---
 // In a real app, this would be an API call to a database.
@@ -21,6 +21,29 @@ const getLinksFromStorage = (): Link[] => {
     return initialMockLinks;
   }
 };
+
+const getLoadingPagesFromStorage = (): LoadingPage[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const item = window.localStorage.getItem('customLoadingPages');
+        return item ? JSON.parse(item) : [];
+    } catch (error) {
+        console.error("Failed to parse loading pages from localStorage", error);
+        return [];
+    }
+}
+
+const getSettingsFromStorage = (): Settings | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const item = window.localStorage.getItem('globalSettings'); // Assuming settings are stored here
+        return item ? JSON.parse(item) : null;
+    } catch (error) {
+        console.error("Failed to parse settings from localStorage", error);
+        return null;
+    }
+}
+
 
 const addClickToLinkInStorage = (shortCode: string) => {
     if (typeof window === 'undefined') return;
@@ -69,33 +92,35 @@ const addClickToLinkInStorage = (shortCode: string) => {
 
 
 const getLoadingPageContent = (link: Link): string => {
+    const loadingPages = getLoadingPagesFromStorage();
+    const globalSettings = getSettingsFromStorage();
+    
+    // Default to a simple message if settings are not available
+    const defaultConfig = globalSettings?.loadingPageSettings ?? { enabled: false, mode: 'random', selectedPageId: null };
+    
     // Determine which settings to use: per-link override or global
-    const config = (link.useMetaRefresh && link.loadingPageConfig && !link.loadingPageConfig.useGlobal)
-        ? link.loadingPageConfig
-        : mockSettings.loadingPageSettings;
+    const usePerLinkConfig = link.loadingPageConfig && !link.loadingPageConfig.useGlobal;
+    const config = usePerLinkConfig ? link.loadingPageConfig! : defaultConfig;
 
     // Check if loading pages are enabled at all
-    if (!config.enabled && !(link.loadingPageConfig && !link.loadingPageConfig.useGlobal)) {
+    if (!config.enabled && !usePerLinkConfig) {
         return '<p>Redirecting...</p>';
     }
 
     let pageId: string | null = null;
-    const effectiveMode = (link.loadingPageConfig && !link.loadingPageConfig.useGlobal) ? link.loadingPageConfig.mode : config.mode;
-
-
+    const effectiveMode = config.mode === 'global' ? defaultConfig.mode : config.mode;
+    
     if (effectiveMode === 'random') {
-        if (mockLoadingPages.length > 0) {
-            const randomIndex = Math.floor(Math.random() * mockLoadingPages.length);
-            pageId = mockLoadingPages[randomIndex].id;
+        if (loadingPages.length > 0) {
+            const randomIndex = Math.floor(Math.random() * loadingPages.length);
+            pageId = loadingPages[randomIndex].id;
         }
     } else if (effectiveMode === 'specific') {
-        pageId = (link.loadingPageConfig && link.loadingPageConfig.selectedPageId)
-            ? link.loadingPageConfig.selectedPageId
-            : config.selectedPageId;
+        pageId = config.selectedPageId ?? defaultConfig.selectedPageId;
     }
 
     // Find the page content from mock data
-    const page = mockLoadingPages.find(p => p.id === pageId);
+    const page = loadingPages.find(p => p.id === pageId);
     return page ? page.content : '<p>Redirecting...</p>';
 }
 
@@ -152,8 +177,9 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       <html>
       <head>
         <title>Redirecting...</title>
+        <meta http-equiv="refresh" content="${delay};url=${link.longUrl}" />
         <script>
-          // Use setTimeout for a more reliable delay, meta refresh can be inconsistent
+          // Use setTimeout as a fallback, but meta tag is primary for this feature
           setTimeout(function() { window.location.href = "${link.longUrl}"; }, ${delay * 1000});
         </script>
       </head>
