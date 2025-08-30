@@ -1,3 +1,4 @@
+import ApiKeyConfig from "@/components/settings/api-key-config";
 import FeatureToggles from "@/components/settings/feature-toggles";
 import { mockSettings } from "@/lib/data";
 
@@ -10,6 +11,7 @@ export default function SettingsPage() {
           Manage global defaults for your link shortener features and security.
         </p>
       </div>
+      <ApiKeyConfig />
       <FeatureToggles initialSettings={mockSettings} />
     </div>
   );
