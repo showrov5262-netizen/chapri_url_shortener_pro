@@ -460,36 +460,26 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             <AccordionItem value="loading-page-options" disabled={!useMetaRefresh}>
               <AccordionTrigger className="text-sm font-semibold">Loading Page</AccordionTrigger>
               <AccordionContent className="pt-4 space-y-6">
-                {!useMetaRefresh && (
-                  <Alert>
-                    <Info className="h-4 w-4" />
-                    <AlertTitle>Enable Meta Refresh</AlertTitle>
-                    <AlertDescription>
-                      To configure a loading page, you must first enable the "Meta Refresh Redirect" option under Redirection Options.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {useMetaRefresh && (
-                  <div className="rounded-lg border p-3 shadow-sm space-y-3">
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
+                <div className="rounded-lg border p-3 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
                         <Label>Configure Loading Page</Label>
                         <p className="text-xs text-muted-foreground">
-                          Override global loading page settings for this link.
+                        Override global loading page settings for this link.
                         </p>
-                      </div>
-                      <Switch
+                    </div>
+                    <Switch
                         checked={useLoadingPageOverride}
                         onCheckedChange={setUseLoadingPageOverride}
-                      />
+                    />
                     </div>
                     {useLoadingPageOverride && (
-                      <div className="space-y-4 pt-4 border-t">
+                    <div className="space-y-4 pt-4 border-t">
                         <RadioGroup 
-                          value={loadingPageConfig.mode}
-                          onValueChange={(value: 'global' | 'random' | 'specific') => {
+                        value={loadingPageConfig.mode}
+                        onValueChange={(value: 'global' | 'random' | 'specific') => {
                             setLoadingPageConfig(prev => ({ ...prev, mode: value, useGlobal: value === 'global' }));
-                          }}
+                        }}
                         >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="global" id="global" />
@@ -505,11 +495,11 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                             </div>
                         </RadioGroup>
                         {loadingPageConfig.mode === 'specific' && (
-                           <div className="grid gap-2 pt-2">
+                        <div className="grid gap-2 pt-2">
                                 <Label htmlFor="select-page" className="text-xs">Select Page</Label>
                                 <Select
-                                  value={loadingPageConfig.selectedPageId ?? ""}
-                                  onValueChange={(value) => setLoadingPageConfig(prev => ({...prev, selectedPageId: value}))}
+                                value={loadingPageConfig.selectedPageId ?? ""}
+                                onValueChange={(value) => setLoadingPageConfig(prev => ({...prev, selectedPageId: value}))}
                                 >
                                 <SelectTrigger id="select-page">
                                     <SelectValue placeholder="Select a loading page" />
@@ -522,12 +512,11 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                                     ))}
                                 </SelectContent>
                                 </Select>
-                           </div>
+                        </div>
                         )}
-                      </div>
+                    </div>
                     )}
-                  </div>
-                )}
+                </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -540,3 +529,5 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     </Dialog>
   );
 }
+
+    
