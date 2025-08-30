@@ -1,3 +1,4 @@
+
 'use client'
 
 import {
@@ -37,6 +38,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
 
     const [isCloaked, setIsCloaked] = useState(false);
     const [useMetaRefresh, setUseMetaRefresh] = useState(false);
+    const [metaRefreshDelay, setMetaRefreshDelay] = useState<number | null>(0);
     const [redirectType, setRedirectType] = useState<'301' | '302'>('301');
     const [password, setPassword] = useState('');
     const [expiresAt, setExpiresAt] = useState<Date | undefined>();
@@ -65,7 +67,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     const addAbTestUrl = () => setAbTestUrls([...abTestUrls, '']);
     const removeAbTestUrl = (index: number) => setAbTestUrls(abTestUrls.filter((_, i) => i !== index));
     
-    const addPixel = () => setPixels([...retargetingPixels, { provider: 'Facebook', id: '' }]);
+    const addPixel = () => setRetargetingPixels([...retargetingPixels, { provider: 'Facebook', id: '' }]);
     const removePixel = (index: number) => setRetargetingPixels(retargetingPixels.filter((_, i) => i !== index));
 
     const handleSubmit = () => {
@@ -86,6 +88,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             redirectType,
             isCloaked,
             useMetaRefresh,
+            metaRefreshDelay: useMetaRefresh ? (metaRefreshDelay || 0) : null,
             password: usePassword ? password : null,
             expiresAt: useExpiration && expiresAt ? expiresAt.toISOString() : null,
             maxClicks: useExpiration ? maxClicks : null,
@@ -197,17 +200,31 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <Label>Meta Refresh Redirect</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Redirect via an intermediate page with a countdown.
-                    </p>
+                <div className="rounded-lg border p-3 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Meta Refresh Redirect</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Redirect via an intermediate page.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={useMetaRefresh}
+                      onCheckedChange={setUseMetaRefresh}
+                    />
                   </div>
-                  <Switch
-                    checked={useMetaRefresh}
-                    onCheckedChange={setUseMetaRefresh}
-                  />
+                   {useMetaRefresh && (
+                    <div className="grid gap-2 pt-2">
+                      <Label htmlFor="redirect-delay" className="text-xs">Redirect Delay (seconds)</Label>
+                      <Input
+                        id="redirect-delay"
+                        type="number"
+                        placeholder="0 for instant redirect"
+                        value={metaRefreshDelay ?? ''}
+                        onChange={(e) => setMetaRefreshDelay(parseInt(e.target.value, 10) || 0)}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-lg border p-3 shadow-sm space-y-3">

@@ -60,6 +60,7 @@ export interface Link {
   redirectType: '301' | '302'; // Standard Redirect
   isCloaked: boolean; // Frame-based cloaking
   useMetaRefresh: boolean; // Meta Refresh Redirect
+  metaRefreshDelay: number | null; // Delay in seconds for meta refresh
   spoof: SpoofData | null; // Spoof Social Media Preview
 
   // Security & Access
