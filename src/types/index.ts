@@ -75,6 +75,12 @@ export interface Link {
   retargetingPixels: RetargetingPixel[];
 }
 
+export interface LoadingPage {
+  id: string;
+  name: string;
+  content: string; // The HTML/CSS content of the loading page
+}
+
 export interface Settings {
   // Global security settings
   botDetection: boolean; // AI-powered
@@ -98,4 +104,11 @@ export interface Settings {
   linkExpiration: boolean;
   geoTargeting: boolean;
   deviceTargeting: boolean;
+
+  // Loading Page Settings
+  loadingPageSettings: {
+    enabled: boolean;
+    mode: 'specific' | 'random';
+    selectedPageId: string | null;
+  };
 }
