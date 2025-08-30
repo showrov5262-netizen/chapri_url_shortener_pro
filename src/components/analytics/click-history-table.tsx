@@ -63,7 +63,7 @@ export default function ClickHistoryTable({ clicks: initialClicks }: { clicks: C
                 <TableHead>Location</TableHead>
                 <TableHead className="hidden lg:table-cell">Referrer</TableHead>
                 <TableHead className="hidden md:table-cell">Device & OS</TableHead>
-                <TableHead className="hidden lg:table-cell">Browser</TableHead>
+                <TableHead className="hidden lg:table-cell">User Agent</TableHead>
                 <TableHead className="text-right">Flags</TableHead>
                 <TableHead>
                     <span className="sr-only">Actions</span>
@@ -77,7 +77,7 @@ export default function ClickHistoryTable({ clicks: initialClicks }: { clicks: C
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="cursor-default">{new Date(click.clickedAt).toLocaleDateString()}</span>
+                            <span className="cursor-default">{new Date(click.clickedAt).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{new Date(click.clickedAt).toLocaleString()}</p>
@@ -101,7 +101,16 @@ export default function ClickHistoryTable({ clicks: initialClicks }: { clicks: C
                       </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {click.browser} {click.browserVersion}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <p className="truncate max-w-xs cursor-default">{click.userAgent}</p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{click.userAgent}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </TableCell>
                     <TableCell className="text-right">
                       {click.isBot && (

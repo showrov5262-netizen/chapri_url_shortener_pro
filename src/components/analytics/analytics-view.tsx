@@ -32,16 +32,15 @@ export default function AnalyticsView({ link }: { link: Link }) {
             <BotDetectionCard link={link} />
         </div>
         
-        <Card>
-            <CardHeader>
-                <CardTitle>Clicks Over Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <ClicksByTimeChart clicks={link.clicks} />
-            </CardContent>
-        </Card>
-
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="lg:col-span-3">
+                <CardHeader>
+                    <CardTitle>Clicks Over Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ClicksByTimeChart clicks={link.clicks} />
+                </CardContent>
+            </Card>
              <Card>
                 <CardHeader>
                     <CardTitle>Geographic Data</CardTitle>
