@@ -28,6 +28,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 const DeviceIcon = ({ device }: { device: Click['device'] }) => {
   if (device === 'Desktop') return <Monitor className="h-4 w-4" />;
@@ -101,16 +113,22 @@ export default function ClickHistoryTable({ clicks: initialClicks }: { clicks: C
                       </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <p className="truncate max-w-xs cursor-default">{click.userAgent}</p>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{click.userAgent}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">View</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Full User Agent</AlertDialogTitle>
+                            <AlertDialogDescription className="break-all">
+                              {click.userAgent}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogAction>Close</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                     <TableCell className="text-right">
                       {click.isBot && (
