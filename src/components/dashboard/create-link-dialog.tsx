@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Upload, Globe, Smartphone, Users, X, Bot } from "lucide-react";
+import { PlusCircle, Upload, Globe, Smartphone, Users, X, Bot, Loader } from "lucide-react";
 import { useState } from "react";
 import { Switch } from "../ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -26,6 +26,8 @@ import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLo
 import { useToast } from "@/hooks/use-toast";
 import { mockLoadingPages } from "@/lib/data";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Info } from "lucide-react";
 
 
 export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks' | 'shortCode'>) => void }) {
@@ -50,7 +52,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     const [deviceTargets, setDeviceTargets] = useState<DeviceTarget[]>([]);
     const [abTestUrls, setAbTestUrls] = useState<string[]>([]);
     const [retargetingPixels, setRetargetingPixels] = useState<RetargetingPixel[]>([]);
-    const [loadingPageConfig, setLoadingPageConfig] = useState<LinkLoadingPageConfig>({ useGlobal: true, enabled: false, selectedPageId: null });
+    const [loadingPageConfig, setLoadingPageConfig] = useState<LinkLoadingPageConfig>({ useGlobal: true, mode: 'global', selectedPageId: null });
 
     const [usePassword, setUsePassword] = useState(false);
     const [useExpiration, setUseExpiration] = useState(false);
@@ -59,6 +61,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
     const [useDeviceTargeting, setUseDeviceTargeting] = useState(false);
     const [useABTesting, setUseABTesting] = useState(false);
     const [usePixels, setUsePixels] = useState(false);
+    const [useLoadingPageOverride, setUseLoadingPageOverride] = useState(false);
 
 
     const addGeoTarget = () => setGeoTargets([...geoTargets, { country: '', url: '' }]);
@@ -92,7 +95,7 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
             isCloaked,
             useMetaRefresh,
             metaRefreshDelay: useMetaRefresh ? (metaRefreshDelay || 0) : null,
-            loadingPageConfig: useMetaRefresh ? loadingPageConfig : undefined,
+            loadingPageConfig: useMetaRefresh && useLoadingPageOverride ? loadingPageConfig : { useGlobal: true, mode: 'global', selectedPageId: null },
             password: usePassword ? password : null,
             expiresAt: useExpiration && expiresAt ? expiresAt.toISOString() : null,
             maxClicks: useExpiration ? maxClicks : null,
@@ -228,54 +231,6 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                           value={metaRefreshDelay ?? ''}
                           onChange={(e) => setMetaRefreshDelay(parseInt(e.target.value, 10) || 0)}
                         />
-                      </div>
-                      <div className="rounded-md border p-4 space-y-4">
-                        <Label className="font-medium">Loading Page Override</Label>
-                        <RadioGroup 
-                          value={loadingPageConfig.useGlobal ? 'global' : (loadingPageConfig.enabled ? 'specific' : 'disabled')}
-                          onValueChange={(value) => {
-                            if (value === 'global') {
-                              setLoadingPageConfig({ useGlobal: true, enabled: false, selectedPageId: null });
-                            } else if (value === 'disabled') {
-                              setLoadingPageConfig({ useGlobal: false, enabled: false, selectedPageId: null });
-                            } else {
-                              setLoadingPageConfig({ useGlobal: false, enabled: true, selectedPageId: loadingPageConfig.selectedPageId });
-                            }
-                          }}
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="global" id="global" />
-                                <Label htmlFor="global" className="font-normal">Use Global Setting</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="disabled" id="disabled" />
-                                <Label htmlFor="disabled" className="font-normal">Disable Loading Page for this link</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="specific" id="specific" />
-                                <Label htmlFor="specific" className="font-normal">Use a specific loading page</Label>
-                            </div>
-                        </RadioGroup>
-                        {!loadingPageConfig.useGlobal && loadingPageConfig.enabled && (
-                           <div className="grid gap-2 pt-2">
-                                <Label htmlFor="select-page" className="text-xs">Select Page</Label>
-                                <Select
-                                  value={loadingPageConfig.selectedPageId ?? ""}
-                                  onValueChange={(value) => setLoadingPageConfig(prev => ({...prev, selectedPageId: value}))}
-                                >
-                                <SelectTrigger id="select-page">
-                                    <SelectValue placeholder="Select a loading page" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {mockLoadingPages.map(page => (
-                                    <SelectItem key={page.id} value={page.id}>
-                                        {page.name}
-                                    </SelectItem>
-                                    ))}
-                                </SelectContent>
-                                </Select>
-                           </div>
-                        )}
                       </div>
                     </div>
                   )}
@@ -499,6 +454,80 @@ export function CreateLinkDialog({ onAddLink }: { onAddLink: (link: Omit<Link, '
                   )}
                 </div>
 
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="loading-page-options" disabled={!useMetaRefresh}>
+              <AccordionTrigger className="text-sm font-semibold">Loading Page</AccordionTrigger>
+              <AccordionContent className="pt-4 space-y-6">
+                {!useMetaRefresh && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Enable Meta Refresh</AlertTitle>
+                    <AlertDescription>
+                      To configure a loading page, you must first enable the "Meta Refresh Redirect" option under Redirection Options.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {useMetaRefresh && (
+                  <div className="rounded-lg border p-3 shadow-sm space-y-3">
+                     <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Configure Loading Page</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Override global loading page settings for this link.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={useLoadingPageOverride}
+                        onCheckedChange={setUseLoadingPageOverride}
+                      />
+                    </div>
+                    {useLoadingPageOverride && (
+                      <div className="space-y-4 pt-4 border-t">
+                        <RadioGroup 
+                          value={loadingPageConfig.mode}
+                          onValueChange={(value: 'global' | 'random' | 'specific') => {
+                            setLoadingPageConfig(prev => ({ ...prev, mode: value, useGlobal: value === 'global' }));
+                          }}
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="global" id="global" />
+                                <Label htmlFor="global" className="font-normal">Use Global Setting</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="random" id="random" />
+                                <Label htmlFor="random" className="font-normal">Show a random loading page</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="specific" id="specific" />
+                                <Label htmlFor="specific" className="font-normal">Use a specific loading page</Label>
+                            </div>
+                        </RadioGroup>
+                        {loadingPageConfig.mode === 'specific' && (
+                           <div className="grid gap-2 pt-2">
+                                <Label htmlFor="select-page" className="text-xs">Select Page</Label>
+                                <Select
+                                  value={loadingPageConfig.selectedPageId ?? ""}
+                                  onValueChange={(value) => setLoadingPageConfig(prev => ({...prev, selectedPageId: value}))}
+                                >
+                                <SelectTrigger id="select-page">
+                                    <SelectValue placeholder="Select a loading page" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {mockLoadingPages.map(page => (
+                                    <SelectItem key={page.id} value={page.id}>
+                                        {page.name}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                           </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </AccordionContent>
             </AccordionItem>
           </Accordion>

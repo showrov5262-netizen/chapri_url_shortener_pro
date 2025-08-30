@@ -1,4 +1,5 @@
 
+
 export interface Click {
   id: string;
   ipAddress: string;
@@ -48,7 +49,7 @@ export interface RetargetingPixel {
 
 export interface LinkLoadingPageConfig {
   useGlobal: boolean;
-  enabled: boolean;
+  mode: 'global' | 'random' | 'specific';
   selectedPageId: string | null;
 }
 

@@ -1,5 +1,5 @@
 
-import type { Click, Link, Settings, LoadingPage } from '@/types';
+import type { Link, Settings, LoadingPage } from '@/types';
 
 const generateClicks = (count: number, daysAgo: number, shortCode: string): Link['clicks'] => {
   const clicks = [];
@@ -126,7 +126,7 @@ export const mockLinks: Link[] = [
     metaRefreshDelay: 5,
     loadingPageConfig: {
       useGlobal: false,
-      enabled: true,
+      mode: 'specific',
       selectedPageId: 'lp-2',
     },
     password: 'supersecret',
