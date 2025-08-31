@@ -39,6 +39,10 @@ export default function SummaryCard({ link }: { link: Link }) {
   const isAiConfigured = aiStatus === 'valid';
 
   useEffect(() => {
+    if (aiStatus === 'unknown' || aiStatus === 'checking') {
+      return; // Wait until AI status is determined
+    }
+      
     if (!isAiConfigured) {
         setSummary("AI is not configured. Please add a valid API key in settings to enable summaries.");
         setLoading(false);
@@ -69,7 +73,7 @@ export default function SummaryCard({ link }: { link: Link }) {
       }
     };
     fetchSummary();
-  }, [link, isAiConfigured]);
+  }, [link, isAiConfigured, aiStatus]);
 
   return (
     <Card className="lg:col-span-2">
@@ -78,7 +82,7 @@ export default function SummaryCard({ link }: { link: Link }) {
         <FileText className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {loading || aiStatus === 'checking' ? (
           <div className="space-y-2">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
