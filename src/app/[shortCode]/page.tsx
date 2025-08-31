@@ -104,7 +104,7 @@ const getLoadingPageContent = (link: Link): string => {
     const config = usePerLinkConfig ? link.loadingPageConfig! : defaultConfig;
 
     // Check if loading pages are enabled at all
-    if (!config.enabled && !usePerLinkConfig) {
+    if (!config.enabled && !usePerLink-linkConfig) {
         return '<p>Redirecting...</p>';
     }
 
@@ -129,6 +129,7 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
   const { shortCode } = params;
   const [link, setLink] = useState<Link | null | undefined>(undefined);
   const [destinationUrl, setDestinationUrl] = useState<string>('');
+  const [pageContent, setPageContent] = useState<string | null>(null);
 
   useEffect(() => {
     // This effect runs only on the client-side
@@ -141,17 +142,29 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       setLink(foundLink);
 
       // Handle Base64 decoding if necessary
+      let finalUrl = foundLink.longUrl;
       if (foundLink.useBase64Encoding) {
         try {
-            // The 'atob' function decodes a Base64 string.
-            const decodedUrl = atob(foundLink.longUrl);
-            setDestinationUrl(decodedUrl);
+            finalUrl = atob(foundLink.longUrl);
         } catch (e) {
             console.error("Failed to decode Base64 URL:", e);
-            setDestinationUrl(foundLink.longUrl); // Fallback to raw URL on error
+            // Fallback to raw URL on error
         }
-      } else {
-        setDestinationUrl(foundLink.longUrl);
+      }
+      setDestinationUrl(finalUrl);
+
+      // Prepare loading page content if meta refresh is used
+      if (foundLink.useMetaRefresh) {
+        const delay = foundLink.metaRefreshDelay ?? 0;
+        const content = getLoadingPageContent(foundLink);
+        document.title = foundLink.title || 'Redirecting...';
+        
+        // This sets the meta refresh tag and content for the current document
+        const meta = document.createElement('meta');
+        meta.httpEquiv = 'refresh';
+        meta.content = `${delay};url=${finalUrl}`;
+        document.head.appendChild(meta);
+        setPageContent(content);
       }
 
     } else {
@@ -159,10 +172,10 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
     }
   }, [shortCode]);
   
-  // Update browser tab title
+  // Update browser tab title for non-meta-refresh links
   useEffect(() => {
-    if (link?.title) {
-        document.title = link.title;
+    if (link && !link.useMetaRefresh) {
+        document.title = link.title || 'Redirecting...';
     }
   }, [link]);
 
@@ -191,56 +204,26 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
           src={destinationUrl}
           style={{ width: '100%', height: '100%', border: 'none' }}
           title={link.title}
+          // sandbox attribute can sometimes interfere with sites, removed for wider compatibility
         />
       </div>
     );
   }
 
   // Handle Meta Refresh Redirect (and loading pages)
-  if (link.useMetaRefresh) {
-    const delay = link.metaRefreshDelay ?? 0;
-    const pageContent = getLoadingPageContent(link);
-
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${link.title || 'Redirecting...'}</title>
-        <meta http-equiv="refresh" content="${delay};url=${destinationUrl}" />
-        <style>
-            /* Ensure the body takes up full space for centering */
-            html, body { 
-                margin: 0; 
-                padding: 0; 
-                width: 100%; 
-                height: 100%; 
-                overflow: hidden;
-            }
-        </style>
-        <script>
-          // Use setTimeout as a fallback, but meta tag is primary for this feature
-          setTimeout(function() { window.location.href = "${destinationUrl}"; }, ${delay * 1000});
-        </script>
-      </head>
-      <body>
-        ${pageContent}
-      </body>
-      </html>
-    `;
-    
+  if (link.useMetaRefresh && pageContent) {
+    // Render the loading page content directly into the page body.
     return (
-        <iframe
-            srcDoc={fullHtml}
-            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-            title={link.title}
-            sandbox="allow-scripts"
+        <div
+            style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}
+            dangerouslySetInnerHTML={{ __html: pageContent }}
         />
     );
   }
 
   // Default: Standard Redirect (using client-side redirect)
   // This part of the code runs after the link state has been set.
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && !link.useMetaRefresh) {
       window.location.href = destinationUrl;
   }
   

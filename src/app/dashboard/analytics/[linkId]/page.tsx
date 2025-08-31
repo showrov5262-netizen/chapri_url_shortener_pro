@@ -18,16 +18,20 @@ import { Button } from "@/components/ui/button";
 // which is crucial for dynamic routes on Vercel to avoid 404 errors.
 export const dynamic = 'force-dynamic';
 
-const getLinkFromStorage = (linkId: string): LinkType | undefined => {
-  if (typeof window === 'undefined') return undefined;
+const getLinkFromStorage = (linkId: string): LinkType | undefined | null => {
+  if (typeof window === 'undefined') return undefined; // Return undefined during SSR
   try {
     const item = window.localStorage.getItem('mockLinksData');
-    const allLinks = item ? JSON.parse(item) : initialMockLinks;
-    return allLinks.find((l: LinkType) => l.id === linkId);
+    if (!item) {
+        // If nothing in storage, check initial data
+        return initialMockLinks.find(l => l.id === linkId) || null;
+    }
+    const allLinks: LinkType[] = JSON.parse(item);
+    return allLinks.find((l) => l.id === linkId) || null; // Return null if not found
   } catch (error) {
-    console.error(error);
+    console.error("Failed to parse from localStorage", error);
     // Fallback to initial data if localStorage fails
-    return initialMockLinks.find(l => l.id === linkId);
+    return initialMockLinks.find(l => l.id === linkId) || null;
   }
 };
 
@@ -42,7 +46,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     if (linkId) {
       // We set link state on the client after mount to ensure localStorage is available
-      setLink(getLinkFromStorage(linkId));
+      const foundLink = getLinkFromStorage(linkId);
+      setLink(foundLink);
     }
   }, [linkId]);
   
@@ -87,7 +92,7 @@ export default function AnalyticsPage() {
         <h1 className="text-3xl font-bold font-headline tracking-tight">{link.title}</h1>
         <div className="flex items-center gap-2 mt-1">
           <a href={link.longUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate max-w-md">
-            {link.longUrl}
+            {link.useBase64Encoding ? atob(link.longUrl) : link.longUrl}
           </a>
           <Badge variant="secondary">{link.shortCode}</Badge>
         </div>
