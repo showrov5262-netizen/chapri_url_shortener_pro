@@ -14,23 +14,19 @@ import { useAiState } from "@/hooks/use-ai-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-// This tells Next.js to render this page on-demand on the server at request time,
-// which is crucial for dynamic routes on Vercel to avoid 404 errors.
 export const dynamic = 'force-dynamic';
 
 const getLinkFromStorage = (linkId: string): LinkType | undefined | null => {
-  if (typeof window === 'undefined') return undefined; // Return undefined during SSR
+  if (typeof window === 'undefined') return undefined;
   try {
     const item = window.localStorage.getItem('mockLinksData');
     if (!item) {
-        // If nothing in storage, check initial data
         return initialMockLinks.find(l => l.id === linkId) || null;
     }
     const allLinks: LinkType[] = JSON.parse(item);
-    return allLinks.find((l) => l.id === linkId) || null; // Return null if not found
+    return allLinks.find((l) => l.id === linkId) || null;
   } catch (error) {
     console.error("Failed to parse from localStorage", error);
-    // Fallback to initial data if localStorage fails
     return initialMockLinks.find(l => l.id === linkId) || null;
   }
 };
@@ -45,13 +41,12 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (linkId) {
-      // We set link state on the client after mount to ensure localStorage is available
       const foundLink = getLinkFromStorage(linkId);
       setLink(foundLink);
     }
   }, [linkId]);
   
-  // Render a loading skeleton while waiting for client-side data
+  // This is the loading state. It shows a skeleton UI until the link data is fully loaded.
   if (link === undefined) {
     return (
         <div className="flex flex-col gap-6">
@@ -77,11 +72,12 @@ export default function AnalyticsPage() {
     );
   }
 
-  // If the link is explicitly not found after checking, show 404
+  // If we've checked storage and the link is not there, show a 404.
   if (link === null) {
     notFound();
   }
 
+  // Only render the main content if we have a valid link object.
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -113,7 +109,7 @@ export default function AnalyticsPage() {
         </Alert>
       )}
       
-      {/* Only render AnalyticsView if link is fully loaded to prevent crashes */}
+      {/* This check is crucial. It ensures AnalyticsView only renders when link is fully loaded. */}
       {link && <AnalyticsView link={link} />}
 
     </div>

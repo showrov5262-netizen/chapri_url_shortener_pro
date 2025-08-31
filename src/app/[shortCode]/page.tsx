@@ -8,12 +8,8 @@ import type { Link, Click, LoadingPage, Settings } from '@/types';
 import { mockLinks as initialMockLinks } from '@/lib/data';
 
 // --- Client-side Data Management ---
-// In a real app, this would be an API call to a database.
-// For this prototype, we use localStorage to simulate persistence.
 const getLinksFromStorage = (): Link[] => {
-  if (typeof window === 'undefined') {
-    return initialMockLinks;
-  }
+  if (typeof window === 'undefined') return initialMockLinks;
   try {
     const item = window.localStorage.getItem('mockLinksData');
     return item ? JSON.parse(item) : initialMockLinks;
@@ -37,7 +33,7 @@ const getLoadingPagesFromStorage = (): LoadingPage[] => {
 const getSettingsFromStorage = (): Settings | null => {
     if (typeof window === 'undefined') return null;
     try {
-        const item = window.localStorage.getItem('globalSettings'); // Assuming settings are stored here
+        const item = window.localStorage.getItem('globalSettings');
         return item ? JSON.parse(item) : null;
     } catch (error) {
         console.error("Failed to parse settings from localStorage", error);
@@ -46,8 +42,8 @@ const getSettingsFromStorage = (): Settings | null => {
 }
 
 
-const addClickToLinkInStorage = (shortCode: string) => {
-    if (typeof window === 'undefined') return;
+const addClickToLinkInStorage = (shortCode: string): Link | null => {
+    if (typeof window === 'undefined') return null;
 
     const links = getLinksFromStorage();
     const linkIndex = links.findIndex((l) => l.shortCode === shortCode);
@@ -59,11 +55,11 @@ const addClickToLinkInStorage = (shortCode: string) => {
             ipAddress: `203.0.113.${Math.floor(Math.random() * 255)}`, // Mock IP
             userAgent: navigator.userAgent,
             referrer: document.referrer || 'direct',
-            country: 'Unknown', // In a real app, this would be derived from IP
-            city: 'Unknown',
-            region: 'N/A',
-            isp: 'Unknown ISP',
-            organization: 'Unknown Org',
+            country: 'US', // Mock data, real app would use IP lookup
+            city: 'Mountain View',
+            region: 'CA',
+            isp: 'Mock ISP',
+            organization: 'Mock Org',
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             language: navigator.language,
             device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
@@ -79,32 +75,29 @@ const addClickToLinkInStorage = (shortCode: string) => {
             isEmailScanner: false,
         };
 
-        // Add the new click to the beginning of the clicks array
         links[linkIndex].clicks.unshift(newClick);
 
         try {
-            // Save the updated links array back to localStorage
             window.localStorage.setItem('mockLinksData', JSON.stringify(links));
+            return links[linkIndex];
         } catch (error) {
             console.error("Failed to save updated links to localStorage", error);
+            return null;
         }
     }
+    return null;
 };
-
 
 const getLoadingPageContent = (link: Link): string => {
     const loadingPages = getLoadingPagesFromStorage();
     const globalSettings = getSettingsFromStorage();
     
-    // Default to a simple message if settings are not available
     const defaultConfig = globalSettings?.loadingPageSettings ?? { enabled: false, mode: 'random', selectedPageId: null };
     
-    // Determine which settings to use: per-link override or global
     const usePerLinkConfig = link.loadingPageConfig && !link.loadingPageConfig.useGlobal;
     const config = usePerLinkConfig ? link.loadingPageConfig! : defaultConfig;
 
-    // Check if loading pages are enabled at all
-    if (!config.enabled && !usePerLink-linkConfig) {
+    if (!config.enabled && !usePerLinkConfig) {
         return '<p>Redirecting...</p>';
     }
 
@@ -120,113 +113,159 @@ const getLoadingPageContent = (link: Link): string => {
         pageId = config.selectedPageId ?? defaultConfig.selectedPageId;
     }
 
-    // Find the page content from mock data
     const page = loadingPages.find(p => p.id === pageId);
     return page ? page.content : '<p>Redirecting...</p>';
 }
 
+function getDestinationUrl(link: Link): string {
+    // 1. Check for Geo-targeting (mock country)
+    const userCountry = 'US'; // In a real app, this would come from IP lookup
+    const geoTarget = link.geoTargets?.find(t => t.country === userCountry);
+    if (geoTarget) return geoTarget.url;
+
+    // 2. Check for Device-targeting
+    const userAgent = navigator.userAgent;
+    const isMobile = /Mobi|Android/i.test(userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(userAgent);
+    const isAndroid = /Android/i.test(userAgent);
+    
+    let deviceType: 'iOS' | 'Android' | 'Desktop' = 'Desktop';
+    if (isIOS) deviceType = 'iOS';
+    else if (isAndroid) deviceType = 'Android';
+    
+    const deviceTarget = link.deviceTargets?.find(t => t.device === deviceType);
+    if (deviceTarget) return deviceTarget.url;
+    
+    // 3. Handle A/B Testing (Rotator)
+    const allUrls = [link.longUrl, ...(link.abTestUrls || [])].filter(Boolean);
+    if (allUrls.length > 1) {
+        const randomIndex = Math.floor(Math.random() * allUrls.length);
+        return allUrls[randomIndex];
+    }
+    
+    // 4. Default to the main longUrl
+    return link.longUrl;
+}
+
+function injectPixels(link: Link) {
+    if (!link.retargetingPixels || typeof document === 'undefined') return;
+
+    link.retargetingPixels.forEach(pixel => {
+        if (pixel.provider === 'Facebook' && pixel.id) {
+            const script = document.createElement('script');
+            script.innerHTML = `
+                !function(f,b,e,v,n,t,s)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(window, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '${pixel.id}');
+                fbq('track', 'PageView');
+            `;
+            document.head.appendChild(script);
+        }
+        // Add other pixel providers (Google, LinkedIn, etc.) here in a similar way
+    });
+}
+
 export default function ShortLinkRedirectPage({ params }: { params: { shortCode: string } }) {
   const { shortCode } = params;
-  const [link, setLink] = useState<Link | null | undefined>(undefined);
-  const [destinationUrl, setDestinationUrl] = useState<string>('');
-  const [pageContent, setPageContent] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'redirecting' | 'cloaking' | 'rendering_loading_page' | 'not_found'>('loading');
+  const [pageContent, setPageContent] = useState<string>('');
+  const [cloakedUrl, setCloakedUrl] = useState<string>('');
+  const [pageTitle, setPageTitle] = useState('Redirecting...');
 
   useEffect(() => {
-    // This effect runs only on the client-side
-    const allLinks = getLinksFromStorage();
-    const foundLink = allLinks.find((l) => l.shortCode === shortCode);
+    // This effect runs only once on the client-side to handle the entire redirect flow.
+    if (shortCode) {
+      // 1. Find the link in storage
+      const allLinks = getLinksFromStorage();
+      const foundLink = allLinks.find((l) => l.shortCode === shortCode);
 
-    if (foundLink) {
-      // LOG THE CLICK!
+      if (!foundLink) {
+        setStatus('not_found');
+        return;
+      }
+      
+      // 2. Set the page title
+      document.title = foundLink.title || 'Redirecting...';
+      setPageTitle(foundLink.title);
+
+      // 3. LOG THE CLICK! This is guaranteed to run before any redirect.
       addClickToLinkInStorage(shortCode);
-      setLink(foundLink);
+      
+      // 4. Inject any retargeting pixels
+      injectPixels(foundLink);
 
-      // Handle Base64 decoding if necessary
-      let finalUrl = foundLink.longUrl;
+      // 5. Determine the final destination URL (handles A/B, Geo, Device)
+      let finalUrl = getDestinationUrl(foundLink);
+      
+      // 6. Handle Base64 decoding if necessary
       if (foundLink.useBase64Encoding) {
         try {
-            finalUrl = atob(foundLink.longUrl);
+            finalUrl = atob(finalUrl);
         } catch (e) {
             console.error("Failed to decode Base64 URL:", e);
-            // Fallback to raw URL on error
         }
       }
-      setDestinationUrl(finalUrl);
 
-      // Prepare loading page content if meta refresh is used
-      if (foundLink.useMetaRefresh) {
+      // 7. Decide the redirection method
+      if (foundLink.isCloaked) {
+        setCloakedUrl(finalUrl);
+        setStatus('cloaking');
+      } else if (foundLink.useMetaRefresh) {
         const delay = foundLink.metaRefreshDelay ?? 0;
         const content = getLoadingPageContent(foundLink);
-        document.title = foundLink.title || 'Redirecting...';
         
-        // This sets the meta refresh tag and content for the current document
         const meta = document.createElement('meta');
         meta.httpEquiv = 'refresh';
         meta.content = `${delay};url=${finalUrl}`;
         document.head.appendChild(meta);
+        
         setPageContent(content);
+        setStatus('rendering_loading_page');
+      } else {
+        // Standard Redirect
+        window.location.href = finalUrl;
+        setStatus('redirecting');
       }
-
-    } else {
-      setLink(null); // Explicitly set to null if not found
     }
   }, [shortCode]);
-  
-  // Update browser tab title for non-meta-refresh links
-  useEffect(() => {
-    if (link && !link.useMetaRefresh) {
-        document.title = link.title || 'Redirecting...';
-    }
-  }, [link]);
 
+  // --- Render based on status ---
 
-  // While we are figuring out the link, show a loading state.
-  if (link === undefined) {
+  if (status === 'loading') {
     return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Loading link...</div>;
   }
   
-  // If the link is null (not found after checking), show 404.
-  if (!link) {
+  if (status === 'not_found') {
     notFound();
   }
 
-  // --- REDIRECTION LOGIC ---
-  // Ensure we have a destination URL before attempting any redirect
-  if (!destinationUrl) {
-    return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Preparing link...</div>;
-  }
-
-  // Handle Frame-based Cloaking
-  if (link.isCloaked) {
+  if (status === 'cloaking') {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}>
         <iframe
-          src={destinationUrl}
+          src={cloakedUrl}
           style={{ width: '100%', height: '100%', border: 'none' }}
-          title={link.title}
-          // sandbox attribute can sometimes interfere with sites, removed for wider compatibility
+          title={pageTitle}
         />
       </div>
     );
   }
 
-  // Handle Meta Refresh Redirect (and loading pages)
-  if (link.useMetaRefresh && pageContent) {
-    // Render the loading page content directly into the page body.
+  if (status === 'rendering_loading_page') {
     return (
         <div
-            style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}
+            style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}
             dangerouslySetInnerHTML={{ __html: pageContent }}
         />
     );
   }
 
-  // Default: Standard Redirect (using client-side redirect)
-  // This part of the code runs after the link state has been set.
-  if (typeof window !== 'undefined' && !link.useMetaRefresh) {
-      window.location.href = destinationUrl;
-  }
-  
-  // Fallback content while the JavaScript redirect is being processed by the browser
+  // Fallback content for standard redirect while the browser processes it
   return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Redirecting you now...</div>;
 }
