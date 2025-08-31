@@ -3,7 +3,7 @@ import { mockSettings } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -14,7 +14,7 @@ export default function SettingsPage() {
           Manage global defaults for your link shortener features and security.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
             <CardHeader>
             <CardTitle>AI Provider Configuration</CardTitle>
@@ -26,6 +26,23 @@ export default function SettingsPage() {
                 <Link href="/dashboard/settings/ai">
                     <Button variant="outline">
                         Configure AI Settings
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                </Link>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+            <CardTitle>CAPTCHA Configuration</CardTitle>
+            <CardDescription>
+                Set up Google reCAPTCHA to protect your links from bots.
+            </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Link href="/dashboard/settings/captcha">
+                    <Button variant="outline">
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Configure CAPTCHA
                         <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                 </Link>

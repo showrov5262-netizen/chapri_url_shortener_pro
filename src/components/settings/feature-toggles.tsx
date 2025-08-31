@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Settings } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -11,16 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { useAiState } from "@/hooks/use-ai-state";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "@/lib/utils";
+import usePersistentState from "@/hooks/use-persistent-state";
 
 
 export default function FeatureToggles({ initialSettings }: { initialSettings: Settings }) {
-  const [settings, setSettings] = useState(initialSettings);
+  const [settings, setSettings] = usePersistentState<Settings>('globalSettings', initialSettings);
   const { status: aiStatus } = useAiState();
   const isAiConfigured = aiStatus === 'valid';
+  const [isCaptchaConfigured, setIsCaptchaConfigured] = useState(false);
+
+  useEffect(() => {
+      if (typeof window !== 'undefined') {
+          const captchaConfig = localStorage.getItem('captchaConfig');
+          setIsCaptchaConfigured(!!captchaConfig);
+      }
+  }, []);
 
   const handleToggle = (key: keyof Settings | `manualBotDetection.${keyof Settings['manualBotDetection']}`) => {
-    if (key.startsWith('manualBotDetection.')) {
-      const subKey = key.split('.')[1] as keyof Settings['manualBotDetection'];
+    const keys = key.split('.');
+    if (keys.length > 1 && keys[0] === 'manualBotDetection') {
+      const subKey = keys[1] as keyof Settings['manualBotDetection'];
       setSettings(prev => ({
         ...prev,
         manualBotDetection: {
@@ -47,7 +57,16 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
         isAiConfigured ? "bg-green-500" : "bg-red-500"
       )}
     />
-  )
+  );
+
+  const CaptchaStatusIndicator = () => (
+     <span
+      className={cn(
+        "h-2 w-2 rounded-full mr-2 shrink-0",
+        isCaptchaConfigured ? "bg-green-500" : "bg-red-500"
+      )}
+    />
+  );
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -89,7 +108,6 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
             </Tooltip>
           </TooltipProvider>
 
-          
           <div className="space-y-4">
             <Label className="text-sm font-medium">Manual Bot Filtering</Label>
             <div className="space-y-4 pl-4 border-l-2">
@@ -139,19 +157,37 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
               onCheckedChange={() => handleToggle('malwareProtection')}
             />
           </div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="captcha" className="flex flex-col gap-1">
-                <span>CAPTCHA Verification</span>
-                 <span className="font-normal text-muted-foreground text-xs">
-                    Require users to solve a CAPTCHA.
-                </span>
-            </Label>
-            <Switch
-              id="captchaVerification"
-              checked={settings.captchaVerification}
-              onCheckedChange={() => handleToggle('captchaVerification')}
-            />
-          </div>
+          
+           <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between p-3 rounded-lg border bg-card shadow-sm has-[[data-disabled=true]]:opacity-50 has-[[data-disabled=true]]:cursor-not-allowed">
+                  <Label htmlFor="captcha" className="flex items-center gap-1 cursor-pointer">
+                      <CaptchaStatusIndicator />
+                      <div className="flex flex-col">
+                        <span>CAPTCHA Verification</span>
+                        <span className="font-normal text-muted-foreground text-xs">
+                            Require users to solve a CAPTCHA.
+                        </span>
+                      </div>
+                  </Label>
+                  <Switch
+                    id="captchaVerification"
+                    checked={settings.captchaVerification}
+                    onCheckedChange={() => handleToggle('captchaVerification')}
+                    disabled={!isCaptchaConfigured}
+                    data-disabled={!isCaptchaConfigured}
+                  />
+                </div>
+              </TooltipTrigger>
+              {!isCaptchaConfigured && (
+                  <TooltipContent>
+                    <p>CAPTCHA is not configured. Please add keys in settings.</p>
+                  </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+
           <div className="flex items-center justify-between">
             <Label htmlFor="rate-limiting" className="flex flex-col gap-1">
                 <span>IP-based Rate Limiting</span>
@@ -193,29 +229,39 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
            </div>
            <Separator />
            <div className="flex items-center justify-between">
-            <Label htmlFor="link-cloaking" className="flex flex-col gap-1">
+            <Label className="flex flex-col gap-1">
                 <span>Frame-based Cloaking</span>
                  <span className="font-normal text-muted-foreground text-xs">
                     Enable URL masking by default.
                 </span>
             </Label>
             <Switch
-              id="linkCloaking"
               checked={settings.linkCloaking}
               onCheckedChange={() => handleToggle('linkCloaking')}
             />
           </div>
           <div className="flex items-center justify-between">
-            <Label htmlFor="meta-refresh" className="flex flex-col gap-1">
+            <Label className="flex flex-col gap-1">
                 <span>Meta Refresh Redirect</span>
                  <span className="font-normal text-muted-foreground text-xs">
                     Use meta refresh as default redirect.
                 </span>
             </Label>
             <Switch
-              id="metaRefresh"
               checked={settings.metaRefresh}
               onCheckedChange={() => handleToggle('metaRefresh')}
+            />
+          </div>
+           <div className="flex items-center justify-between">
+            <Label className="flex flex-col gap-1">
+                <span>Spoof Social Media Preview</span>
+                 <span className="font-normal text-muted-foreground text-xs">
+                    Enable spoofing by default.
+                </span>
+            </Label>
+            <Switch
+              checked={settings.spoof}
+              onCheckedChange={() => handleToggle('spoof')}
             />
           </div>
         </CardContent>
@@ -237,7 +283,6 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
                   </span>
               </Label>
               <Switch
-                id="passwordProtection"
                 checked={settings.passwordProtection}
                 onCheckedChange={() => handleToggle('passwordProtection')}
               />
@@ -250,11 +295,23 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
                   </span>
               </Label>
               <Switch
-                id="linkExpiration"
                 checked={settings.linkExpiration}
                 onCheckedChange={() => handleToggle('linkExpiration')}
               />
             </div>
+             <div className="flex items-center justify-between">
+              <Label className="flex flex-col gap-1">
+                  <span>Base64 URL Encoding</span>
+                  <span className="font-normal text-muted-foreground text-xs">
+                      Obfuscate destination URLs by default.
+                  </span>
+              </Label>
+              <Switch
+                checked={settings.useBase64Encoding}
+                onCheckedChange={() => handleToggle('useBase64Encoding')}
+              />
+            </div>
+            <Separator />
             <div className="flex items-center justify-between">
               <Label className="flex flex-col gap-1">
                   <span>Geo-Targeting</span>
@@ -263,7 +320,6 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
                   </span>
               </Label>
               <Switch
-                id="geoTargeting"
                 checked={settings.geoTargeting}
                 onCheckedChange={() => handleToggle('geoTargeting')}
               />
@@ -276,9 +332,32 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
                   </span>
               </Label>
               <Switch
-                id="deviceTargeting"
                 checked={settings.deviceTargeting}
                 onCheckedChange={() => handleToggle('deviceTargeting')}
+              />
+            </div>
+             <div className="flex items-center justify-between">
+              <Label className="flex flex-col gap-1">
+                  <span>A/B Testing (Rotator)</span>
+                  <span className="font-normal text-muted-foreground text-xs">
+                      Enable link rotator by default.
+                  </span>
+              </Label>
+              <Switch
+                checked={settings.abTestUrls}
+                onCheckedChange={() => handleToggle('abTestUrls')}
+              />
+            </div>
+             <div className="flex items-center justify-between">
+              <Label className="flex flex-col gap-1">
+                  <span>Retargeting Pixels</span>
+                  <span className="font-normal text-muted-foreground text-xs">
+                      Enable pixels by default.
+                  </span>
+              </Label>
+              <Switch
+                checked={settings.retargetingPixels}
+                onCheckedChange={() => handleToggle('retargetingPixels')}
               />
             </div>
         </CardContent>

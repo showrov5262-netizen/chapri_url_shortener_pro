@@ -4,7 +4,9 @@ import { AiStateProvider } from "@/hooks/use-ai-state";
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
     <AiStateProvider>
-      {children}
+      <div className="space-y-8">
+        {children}
+      </div>
     </AiStateProvider>
   );
 }

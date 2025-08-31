@@ -4,7 +4,7 @@ import type { Link, Settings, LoadingPage } from '@/types';
 export const mockLinks: Link[] = [
   {
     id: '1',
-    longUrl: 'https://www.example.com',
+    longUrl: 'aHR0cHM6Ly93d3cuZXhhbXBsZS5jb20=', // "https://www.example.com" encoded
     shortCode: 'demo',
     title: 'My First Link',
     description: 'This is a sample link to get you started. You can delete it later.',
@@ -23,6 +23,8 @@ export const mockLinks: Link[] = [
     deviceTargets: [],
     abTestUrls: [],
     retargetingPixels: [],
+    useBase64Encoding: true,
+    captchaVerification: false,
   }
 ];
 
@@ -97,7 +99,6 @@ export const mockLoadingPages: LoadingPage[] = [
   }
 ];
 
-
 export const mockSettings: Settings = {
     // Security
     botDetection: true,
@@ -115,12 +116,16 @@ export const mockSettings: Settings = {
     defaultRedirectType: '301',
     linkCloaking: false, // Frame-based
     metaRefresh: false,
+    spoof: false,
 
     // Advanced Features
     passwordProtection: false,
     linkExpiration: false,
-    geoTargeting: true,
-    deviceTargeting: true,
+    geoTargeting: false,
+    deviceTargeting: false,
+    abTestUrls: false,
+    retargetingPixels: false,
+    useBase64Encoding: false,
 
     // Loading Page Settings
     loadingPageSettings: {

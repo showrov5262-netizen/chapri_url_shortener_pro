@@ -54,7 +54,7 @@ export interface LinkLoadingPageConfig {
 }
 
 export interface Link {
-  id: string;
+  id:string;
   longUrl: string;
   shortCode: string;
   title: string;
@@ -76,6 +76,7 @@ export interface Link {
   expiresAt: string | null; // Link Expiration (date)
   maxClicks: number | null; // Link Expiration (clicks)
   useBase64Encoding: boolean; // Obfuscate destination URL
+  captchaVerification: boolean; // Require CAPTCHA
 
   // Advanced Targeting
   geoTargets: GeoTarget[];
@@ -100,19 +101,23 @@ export interface Settings {
     blockEmailScanners: boolean;
   };
   malwareProtection: boolean; // Phishing & Malware Protection
-  captchaVerification: boolean;
+  captchaVerification: boolean; // Default for new links
   ipRateLimiting: boolean;
   
   // Global redirection defaults
   defaultRedirectType: '301' | '302';
   linkCloaking: boolean; // Frame-based cloaking
   metaRefresh: boolean; // Meta Refresh Redirect
+  spoof: boolean; // Spoof Social Media Previews by default
 
   // Global advanced feature defaults
   passwordProtection: boolean;
   linkExpiration: boolean;
   geoTargeting: boolean;
   deviceTargeting: boolean;
+  abTestUrls: boolean; // A/B Testing Rotator
+  retargetingPixels: boolean;
+  useBase64Encoding: boolean;
 
   // Loading Page Settings
   loadingPageSettings: {
@@ -120,4 +125,9 @@ export interface Settings {
     mode: 'specific' | 'random';
     selectedPageId: string | null;
   };
+}
+
+export interface CaptchaConfig {
+  siteKey: string;
+  secretKey: string;
 }
