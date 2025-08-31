@@ -1,23 +1,15 @@
 
+
 // src/app/[shortCode]/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import type { Link, Click, LoadingPage, Settings, CaptchaConfig } from '@/types';
-import { mockLinks as initialMockLinks } from '@/lib/data';
+import { getLinkByShortCode, addClickToLink } from '@/lib/server-data';
 
 // --- Client-side Data Management ---
-const getLinksFromStorage = (): Link[] => {
-  if (typeof window === 'undefined') return initialMockLinks;
-  try {
-    const item = window.localStorage.getItem('mockLinksData');
-    return item ? JSON.parse(item) : initialMockLinks;
-  } catch (error) {
-    console.error("Failed to parse links from localStorage", error);
-    return initialMockLinks;
-  }
-};
+// These helpers now fetch from the server-side logic via server actions.
 
 const getLoadingPagesFromStorage = (): LoadingPage[] => {
     if (typeof window === 'undefined') return [];
@@ -52,51 +44,6 @@ const getCaptchaConfigFromStorage = (): CaptchaConfig | null => {
     }
 }
 
-const addClickToLinkInStorage = (shortCode: string): Link | null => {
-    if (typeof window === 'undefined') return null;
-
-    const links = getLinksFromStorage();
-    const linkIndex = links.findIndex((l) => l.shortCode === shortCode);
-
-    if (linkIndex !== -1) {
-        const newClick: Click = {
-            id: `${shortCode}-click-${Date.now()}`,
-            clickedAt: new Date().toISOString(),
-            ipAddress: `203.0.113.${Math.floor(Math.random() * 255)}`, // Mock IP
-            userAgent: navigator.userAgent,
-            referrer: document.referrer || 'direct',
-            country: 'US', // Mock data, real app would use IP lookup
-            city: 'Mountain View',
-            region: 'CA',
-            isp: 'Mock ISP',
-            organization: 'Mock Org',
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            language: navigator.language,
-            device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
-            deviceModel: null,
-            deviceBrand: null,
-            browser: 'Other',
-            browserVersion: 'N/A',
-            browserEngine: 'N/A',
-            os: 'Other',
-            osVersion: 'N/A',
-            screenResolution: `${window.screen.width}x${window.screen.height}`,
-            isBot: false,
-            isEmailScanner: false,
-        };
-
-        links[linkIndex].clicks.unshift(newClick);
-
-        try {
-            window.localStorage.setItem('mockLinksData', JSON.stringify(links));
-            return links[linkIndex];
-        } catch (error) {
-            console.error("Failed to save updated links to localStorage", error);
-            return null;
-        }
-    }
-    return null;
-};
 
 const getLoadingPageContent = (link: Link): string => {
     const loadingPages = getLoadingPagesFromStorage();
@@ -178,102 +125,104 @@ function injectPixels(link: Link) {
 export default function ShortLinkRedirectPage({ params }: { params: { shortCode: string } }) {
   const { shortCode } = params;
   const [status, setStatus] = useState<'loading' | 'captcha' | 'redirecting' | 'cloaking' | 'rendering_loading_page' | 'not_found'>('loading');
+  const [link, setLink] = useState<Link | null>(null);
   const [pageContent, setPageContent] = useState<string>('');
   const [cloakedUrl, setCloakedUrl] = useState<string>('');
   const [pageTitle, setPageTitle] = useState('Redirecting...');
   const [captchaSiteKey, setCaptchaSiteKey] = useState<string | null>(null);
-
+  
+  // Effect to fetch the link and decide the initial state
   useEffect(() => {
-    const processRedirect = () => {
-      const allLinks = getLinksFromStorage();
-      const foundLink = allLinks.find((l) => l.shortCode === shortCode);
+    if (!shortCode) return;
+    
+    const fetchLink = async () => {
+        const foundLink = await getLinkByShortCode(shortCode);
+        if (!foundLink) {
+            setStatus('not_found');
+            return;
+        }
+        
+        setLink(foundLink);
+        document.title = foundLink.title || 'Redirecting...';
+        setPageTitle(foundLink.title);
 
-      if (!foundLink) {
-        setStatus('not_found');
-        return;
-      }
+        if (foundLink.captchaVerification) {
+            const config = getCaptchaConfigFromStorage();
+            if (config?.siteKey) {
+                setCaptchaSiteKey(config.siteKey);
+                setStatus('captcha');
+            } else {
+                // CAPTCHA configured for link but no site key found, proceed without.
+                setStatus('redirecting'); 
+            }
+        } else {
+            setStatus('redirecting');
+        }
+    };
+    
+    fetchLink();
+  }, [shortCode]);
+
+  // Effect to handle the actual redirection logic once the state is set
+  useEffect(() => {
+    if (status !== 'redirecting' || !link) return;
+
+    const processRedirect = async () => {
+      // Step 1: Record the click. This is guaranteed to happen before redirecting.
+      const newClick: Omit<Click, 'id'> = {
+        clickedAt: new Date().toISOString(),
+        ipAddress: `203.0.113.${Math.floor(Math.random() * 255)}`, // Mock IP
+        userAgent: navigator.userAgent,
+        referrer: document.referrer || 'direct',
+        country: 'US', // Mock data
+        city: 'Mountain View', region: 'CA', isp: 'Mock ISP', organization: 'Mock Org',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        language: navigator.language,
+        device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop',
+        deviceModel: null, deviceBrand: null, browser: 'Other', browserVersion: 'N/A',
+        browserEngine: 'N/A', os: 'Other', osVersion: 'N/A',
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        isBot: false, isEmailScanner: false,
+      };
+      await addClickToLink(link.id, newClick);
       
-      document.title = foundLink.title || 'Redirecting...';
-      setPageTitle(foundLink.title);
+      // Step 2: Inject any tracking pixels
+      injectPixels(link);
 
-      addClickToLinkInStorage(shortCode);
-      injectPixels(foundLink);
-
-      let finalUrl = getDestinationUrl(foundLink);
-      
-      if (foundLink.useBase64Encoding) {
+      // Step 3: Determine the final destination URL
+      let finalUrl = getDestinationUrl(link);
+      if (link.useBase64Encoding) {
         try { finalUrl = atob(finalUrl); } catch (e) { console.error("Failed to decode Base64 URL:", e); }
       }
 
-      if (foundLink.isCloaked) {
+      // Step 4: Execute the redirect based on link configuration
+      if (link.isCloaked) {
         setCloakedUrl(finalUrl);
         setStatus('cloaking');
-      } else if (foundLink.useMetaRefresh) {
-        const delay = foundLink.metaRefreshDelay ?? 0;
-        const content = getLoadingPageContent(foundLink);
-        
-        const meta = document.createElement('meta');
-        meta.httpEquiv = 'refresh';
-        meta.content = `${delay};url=${finalUrl}`;
-        document.head.appendChild(meta);
-        
+      } else if (link.useMetaRefresh) {
+        const content = getLoadingPageContent(link);
         setPageContent(content);
-        setStatus('rendering_loading_page');
+        setStatus('rendering_loading_page'); // Render the page first
+        // Add meta tag after a short delay to ensure content renders
+        setTimeout(() => {
+            const delay = link.metaRefreshDelay ?? 0;
+            const meta = document.createElement('meta');
+            meta.httpEquiv = 'refresh';
+            meta.content = `${delay};url=${finalUrl}`;
+            document.head.appendChild(meta);
+        }, 50);
       } else {
         window.location.href = finalUrl;
-        setStatus('redirecting');
       }
     };
-    
-    if (shortCode) {
-      const foundLink = getLinksFromStorage().find((l) => l.shortCode === shortCode);
-      if (foundLink?.captchaVerification) {
-          const config = getCaptchaConfigFromStorage();
-          if (config?.siteKey) {
-              setCaptchaSiteKey(config.siteKey);
-              setStatus('captcha');
-          } else {
-              processRedirect(); // Fallback if CAPTCHA is not configured
-          }
-      } else {
-          processRedirect();
-      }
-    }
-  }, [shortCode]);
+
+    processRedirect();
+  }, [status, link]);
 
   const onCaptchaSuccess = () => {
-     // This function is called when the CAPTCHA is solved
-     // We remove the CAPTCHA and proceed with the original redirect logic
-     setStatus('loading'); // Go back to loading to trigger the redirect
-     const processRedirect = () => {
-      const allLinks = getLinksFromStorage();
-      const foundLink = allLinks.find((l) => l.shortCode === shortCode);
-
-      if (!foundLink) { setStatus('not_found'); return; }
-      
-      document.title = foundLink.title || 'Redirecting...';
-      setPageTitle(foundLink.title);
-
-      addClickToLinkInStorage(shortCode);
-      injectPixels(foundLink);
-
-      let finalUrl = getDestinationUrl(foundLink);
-      
-      if (foundLink.useBase64Encoding) { try { finalUrl = atob(finalUrl); } catch (e) { console.error("Failed to decode Base64 URL:", e); } }
-
-      if (foundLink.isCloaked) { setCloakedUrl(finalUrl); setStatus('cloaking'); }
-      else if (foundLink.useMetaRefresh) {
-        const delay = foundLink.metaRefreshDelay ?? 0;
-        const content = getLoadingPageContent(foundLink);
-        const meta = document.createElement('meta');
-        meta.httpEquiv = 'refresh';
-        meta.content = `${delay};url=${finalUrl}`;
-        document.head.appendChild(meta);
-        setPageContent(content);
-        setStatus('rendering_loading_page');
-      } else { window.location.href = finalUrl; setStatus('redirecting'); }
-    };
-    processRedirect();
+     // CAPTCHA is solved, move to the redirecting state.
+     // The main useEffect hook will handle the rest.
+     setStatus('redirecting');
   };
 
   if (status === 'loading') {
@@ -288,10 +237,20 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
           <h2 style={{fontWeight: '600'}}>Please verify you are human.</h2>
           <script src="https://www.google.com/recaptcha/api.js" async defer></script>
           <div className="g-recaptcha" data-sitekey={captchaSiteKey} data-callback="onCaptchaSuccess"></div>
-          <script dangerouslySetInnerHTML={{ __html: `function onCaptchaSuccess() { document.dispatchEvent(new CustomEvent('captchaSuccess')); }` }} />
-          {/* Add a listener for the custom event */}
-          <script dangerouslySetInnerHTML={{ __html: `document.addEventListener('captchaSuccess', () => { window.captchaSuccess(); });` }} />
-          {(() => { if (typeof window !== 'undefined') { (window as any).captchaSuccess = onCaptchaSuccess; } })()}
+          {/* This script connects the reCAPTCHA callback to our component's function */}
+          <script dangerouslySetInnerHTML={{ __html: `
+            function onCaptchaSuccess() {
+                window.dispatchEvent(new CustomEvent('captchaSuccess'));
+            }
+          `}} />
+          {(() => {
+              if (typeof window !== 'undefined') {
+                  const handleSuccess = () => onCaptchaSuccess();
+                  window.addEventListener('captchaSuccess', handleSuccess);
+                  // Cleanup listener on component unmount
+                  return () => window.removeEventListener('captchaSuccess', handleSuccess);
+              }
+          })()}
       </div>
     );
   }
@@ -299,9 +258,10 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
   if (status === 'cloaking') {
     return <iframe src={cloakedUrl} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} title={pageTitle} />;
   }
-
+  
+  // Directly render the page content. The meta refresh tag will be added by the effect.
   if (status === 'rendering_loading_page') {
-    return <iframe srcDoc={pageContent} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }} title={pageTitle} />;
+      return <div dangerouslySetInnerHTML={{ __html: pageContent }} />;
   }
 
   return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Redirecting you now...</div>;

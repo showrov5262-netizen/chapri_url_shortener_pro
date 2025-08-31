@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import {
@@ -39,7 +40,7 @@ const getInitialSettings = (): Settings => {
     return stored ? JSON.parse(stored) : mockSettings;
 }
 
-export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => void }) {
+export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => Promise<void> }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     
@@ -167,7 +168,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
         setRetargetingPixels(retargetingPixels.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!longUrl || !title) {
             toast({ variant: "destructive", title: "Validation Error", description: "Destination URL and Title are required." });
             return;
@@ -204,7 +205,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
             captchaVerification,
         };
         
-        onAddLink(newLink);
+        await onAddLink(newLink);
         toast({ title: "Link Created!", description: "Your new short link has been added." });
         setOpen(false);
         resetForm();

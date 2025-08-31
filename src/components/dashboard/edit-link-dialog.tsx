@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import {
@@ -34,7 +35,7 @@ interface EditLinkDialogProps {
   link: Link | null;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onUpdateLink: (link: Link) => void;
+  onUpdateLink: (link: Link) => Promise<void>;
 }
 
 export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: EditLinkDialogProps) {
@@ -158,7 +159,7 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
         setRetargetingPixels(retargetingPixels.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!link) return;
 
         if (!longUrl || !title) {
@@ -192,7 +193,7 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
             captchaVerification,
         };
         
-        onUpdateLink(updatedLink);
+        await onUpdateLink(updatedLink);
         toast({ title: "Link Updated!", description: "Your link has been successfully updated." });
         onOpenChange(false);
     };

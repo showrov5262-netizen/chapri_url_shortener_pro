@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState } from "react";
@@ -46,9 +47,9 @@ import {
 
 interface LinksTableProps {
   links: LinkType[];
-  onAddLink: (newLinkData: Omit<LinkType, 'id' | 'createdAt' | 'clicks'>) => void;
-  onUpdateLink: (updatedLink: LinkType) => void;
-  onDeleteLink: (linkId: string) => void;
+  onAddLink: (newLinkData: Omit<LinkType, 'id' | 'createdAt' | 'clicks'>) => Promise<void>;
+  onUpdateLink: (updatedLink: LinkType) => Promise<void>;
+  onDeleteLink: (linkId: string) => Promise<void>;
 }
 
 export default function LinksTable({ links, onAddLink, onUpdateLink, onDeleteLink }: LinksTableProps) {
@@ -57,12 +58,15 @@ export default function LinksTable({ links, onAddLink, onUpdateLink, onDeleteLin
   const [selectedLink, setSelectedLink] = useState<LinkType | null>(null);
 
   const handleCopy = (shortCode: string) => {
-    const url = `${window.location.host}/${shortCode}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Copied to clipboard!",
-      description: url,
-    });
+    // Ensure this runs in a browser context
+    if (typeof window !== 'undefined') {
+        const url = `${window.location.host}/${shortCode}`;
+        navigator.clipboard.writeText(url);
+        toast({
+            title: "Copied to clipboard!",
+            description: url,
+        });
+    }
   };
   
   const handleEdit = (link: LinkType) => {
@@ -70,8 +74,8 @@ export default function LinksTable({ links, onAddLink, onUpdateLink, onDeleteLin
     setIsEditOpen(true);
   }
 
-  const handleDelete = (linkId: string) => {
-    onDeleteLink(linkId);
+  const handleDelete = async (linkId: string) => {
+    await onDeleteLink(linkId);
     toast({
       variant: "destructive",
       title: "Link Deleted",

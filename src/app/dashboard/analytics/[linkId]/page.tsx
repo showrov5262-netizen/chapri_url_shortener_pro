@@ -1,4 +1,5 @@
 
+
 'use client'
 
 import { useState, useEffect } from "react";
@@ -8,29 +9,13 @@ import Link from "next/link";
 import { ChevronLeft, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Link as LinkType } from "@/types";
-import { mockLinks as initialMockLinks } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAiState } from "@/hooks/use-ai-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { getLink } from "@/lib/server-data";
 
 export const dynamic = 'force-dynamic';
-
-const getLinkFromStorage = (linkId: string): LinkType | undefined | null => {
-  if (typeof window === 'undefined') return undefined;
-  try {
-    const item = window.localStorage.getItem('mockLinksData');
-    if (!item) {
-        return initialMockLinks.find(l => l.id === linkId) || null;
-    }
-    const allLinks: LinkType[] = JSON.parse(item);
-    return allLinks.find((l) => l.id === linkId) || null;
-  } catch (error) {
-    console.error("Failed to parse from localStorage", error);
-    return initialMockLinks.find(l => l.id === linkId) || null;
-  }
-};
-
 
 export default function AnalyticsPage() {
   const params = useParams();
@@ -41,8 +26,16 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (linkId) {
-      const foundLink = getLinkFromStorage(linkId);
-      setLink(foundLink);
+      const fetchLink = async () => {
+        try {
+            const foundLink = await getLink(linkId);
+            setLink(foundLink);
+        } catch (error) {
+            console.error("Failed to fetch link", error);
+            setLink(null);
+        }
+      }
+      fetchLink();
     }
   }, [linkId]);
   

@@ -8,7 +8,7 @@
  */
 
 import { genkit, z } from 'genkit';
-import { googleAI } from '@gen-ai/googleai';
+import { googleAI } from '@genkit-ai/googleai';
 
 const ValidateApiKeyInputSchema = z.object({
   apiKey: z.string().describe('The Gemini API key to validate.'),

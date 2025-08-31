@@ -1,76 +1,79 @@
 
+
 'use client'
 
 import { useState, useEffect } from "react";
 import StatsCards from "@/components/dashboard/stats-cards";
 import LinksTable from "@/components/dashboard/links-table";
-import { mockLinks as initialMockLinks } from "@/lib/data";
 import type { Link } from "@/types";
+import { getLinks, addLink as apiAddLink, updateLink as apiUpdateLink, deleteLink as apiDeleteLink } from "@/lib/server-data";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// In a real app, this would be an API call to a database.
-// For this prototype, we use localStorage to simulate persistence.
-const useLinksState = () => {
+export default function DashboardPage() {
   const [links, setLinks] = useState<Link[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     // This effect runs only on the client-side
-    if (typeof window !== 'undefined') {
-      try {
-        const item = window.localStorage.getItem('mockLinksData');
-        // Initialize with default mock data if localStorage is empty
-        if (!item) {
-          window.localStorage.setItem('mockLinksData', JSON.stringify(initialMockLinks));
-          setLinks(initialMockLinks);
-        } else {
-          setLinks(JSON.parse(item));
+    const fetchLinks = async () => {
+        try {
+            const serverLinks = await getLinks();
+            setLinks(serverLinks);
+        } catch (error) {
+            console.error("Failed to fetch links from server", error);
+        } finally {
+            setIsLoaded(true);
         }
-      } catch (error) {
-        console.error("Failed to parse links from localStorage", error);
-        setLinks(initialMockLinks);
-      } finally {
-        setIsLoaded(true);
-      }
     }
+    fetchLinks();
   }, []);
 
-  const updateLinks = (newLinks: Link[]) => {
-    setLinks(newLinks);
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.setItem('mockLinksData', JSON.stringify(newLinks));
-      } catch (error) {
-        console.error("Failed to save links to localStorage", error);
-      }
+  const addLink = async (newLinkData: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => {
+    try {
+        const newLink = await apiAddLink(newLinkData);
+        setLinks(prevLinks => [newLink, ...prevLinks]);
+    } catch (error) {
+        console.error("Failed to add link:", error);
+    }
+  };
+  
+  const updateLink = async (updatedLinkData: Link) => {
+    try {
+        const updatedLink = await apiUpdateLink(updatedLinkData);
+        setLinks(prevLinks => prevLinks.map(link => link.id === updatedLink.id ? updatedLink : link));
+    } catch (error) {
+        console.error("Failed to update link:", error);
     }
   };
 
-  return { links, updateLinks, isLoaded };
-};
-
-export default function DashboardPage() {
-  const { links, updateLinks, isLoaded } = useLinksState();
-
-  const addLink = (newLinkData: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => {
-    const newLink: Link = {
-      ...newLinkData,
-      id: `link-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      clicks: [],
-    };
-    updateLinks([newLink, ...links]);
-  };
-  
-  const updateLink = (updatedLinkData: Link) => {
-    updateLinks(links.map(link => link.id === updatedLinkData.id ? updatedLinkData : link));
-  };
-
-  const deleteLink = (linkId: string) => {
-    updateLinks(links.filter(link => link.id !== linkId));
+  const deleteLink = async (linkId: string) => {
+    try {
+        await apiDeleteLink(linkId);
+        setLinks(prevLinks => prevLinks.filter(link => link.id !== linkId));
+    } catch (error) {
+        console.error("Failed to delete link:", error);
+    }
   }
 
   if (!isLoaded) {
-      return <div>Loading links...</div>; // Or a proper skeleton loader
+      return (
+        <div className="flex flex-col gap-8">
+            <div>
+                <Skeleton className="h-10 w-1/4 mb-2" />
+                <Skeleton className="h-6 w-1/2" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+                <Skeleton className="h-28 w-full" />
+            </div>
+            <div className="rounded-lg border shadow-sm">
+                 <div className="p-4">
+                    <Skeleton className="h-10 w-full" />
+                 </div>
+            </div>
+        </div>
+      );
   }
 
   return (
