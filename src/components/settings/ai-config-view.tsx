@@ -45,8 +45,8 @@ export default function AiConfigView() {
     setStatus('unknown'); // Reset status until checked
     setErrorMessage(null);
     toast({
-        title: "API Key Saved",
-        description: "Your API key has been saved to your browser session for local testing. This will NOT be active on your live site.",
+        title: "API Key Saved for Session",
+        description: "Your API key has been saved to your browser for local testing.",
     });
   };
 
@@ -155,11 +155,11 @@ export default function AiConfigView() {
           <AlertTitle>Important: Production vs. Local Keys</AlertTitle>
           <AlertDescription>
              <div className="space-y-2">
-                <p className="text-xs font-semibold text-destructive">
-                For your live website (e.g., scoreink.com), you MUST set the <code className="font-mono bg-muted p-1 rounded-sm text-xs">GEMINI_API_KEY</code> as an environment variable in your Vercel project settings.
+                <p className="text-sm font-semibold text-destructive">
+                For your live website, you MUST set the <code className="font-mono bg-muted p-1 rounded-sm text-sm">GEMINI_API_KEY</code> as a secure environment variable in your hosting provider's (e.g., Vercel) settings.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                    This settings page is for **local development and testing only**. The "Save Key" button stores the key in your browser's session storage, not on the server.
+                    This page is for **local development and testing only**. The "Save Key" button stores the key in your browser's session, which is not secure for a live site and will not work once deployed.
                 </p>
                 <div className="flex justify-end">
                     <AlertDialog>
@@ -182,7 +182,7 @@ export default function AiConfigView() {
                                 <li>Copy the generated API key.</li>
                                 <li>Paste it into the input field on this page and click "Save Key", then "Check Status".</li>
                             </ol>
-                            <p>Make sure to keep your API key secure and do not share it publicly.</p>
+                            <p>For your live site, you must add this key as an environment variable in your Vercel project settings.</p>
                             </div>
                         </AlertDialogDescription>
                         </AlertDialogHeader>
@@ -204,7 +204,7 @@ export default function AiConfigView() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleSaveKey} disabled={!localApiKey}>
             <Save className="h-4 w-4 mr-2" />
-            Save Key
+            Save Key for Session
           </Button>
           <Button variant="secondary" onClick={handleCheckStatus} disabled={isChecking || !localApiKey}>
             {isChecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}

@@ -8,7 +8,7 @@
  */
 
 import { genkit, z } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { googleAI } from '@gen-ai/googleai';
 
 const ValidateApiKeyInputSchema = z.object({
   apiKey: z.string().describe('The Gemini API key to validate.'),
@@ -38,7 +38,7 @@ export async function validateApiKey(input: ValidateApiKeyInput): Promise<Valida
   try {
     // A lightweight, low-cost operation to check if the key works.
     await testAi.generate({
-        model: 'gemini-pro', // Using a stable model for validation
+        model: 'gemini-1.5-flash-latest', // Use a modern, commonly available model for validation
         prompt: "test",
         config: {
             maxOutputTokens: 1,
@@ -55,7 +55,10 @@ export async function validateApiKey(input: ValidateApiKeyInput): Promise<Valida
         errorMessage = 'The provided API key is not valid. Please check the key and try again.';
       } else if (e.message.includes('500')) {
         errorMessage = `[Google AI Server Error]: ${e.message}. This may be a temporary issue with the service. Please try again later.`;
-      } else {
+      } else if (e.message.includes('not found')) {
+        errorMessage = `The validation model was not found. This may indicate an issue with the API key's permissions or a regional service problem. Original error: ${e.message}`;
+      }
+      else {
         errorMessage = e.message;
       }
     }
