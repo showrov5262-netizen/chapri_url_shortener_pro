@@ -8,12 +8,17 @@
  * Using 'use server' ensures these functions only run on the server, keeping the data centralized and consistent.
  */
 
-import type { Link, Click } from '@/types';
-import { mockLinks as initialMockLinks } from './data';
+import type { Link, Click, Settings, LoadingPage, CaptchaConfig, AiConfig } from '@/types';
+import { mockLinks as initialMockLinks, mockSettings, mockLoadingPages } from './data';
 import { revalidatePath } from 'next/cache';
 
-// This is our in-memory "database". It starts with the initial mock data.
+// This is our in-memory "database".
 let links: Link[] = [...initialMockLinks];
+let settings: Settings = {...mockSettings};
+let loadingPages: LoadingPage[] = [...mockLoadingPages];
+let captchaConfig: CaptchaConfig = { siteKey: '6Lemy7grAAAAAD25hDiw9ArQvuVJaz4_33PHkM4L', secretKey: '6Lemy7grAAAAAKmkxku3O7CTaU8Wql4R1Qo06IbB' };
+let aiConfig: AiConfig = { apiKey: '' };
+
 
 // Initialize clicks for the demo link
 if (links.length > 0 && links[0].clicks.length === 0) {
@@ -34,8 +39,7 @@ if (links.length > 0 && links[0].clicks.length === 0) {
 
 
 export async function getLinks(): Promise<Link[]> {
-  // In a real app, you'd fetch from a database here.
-  // We return a sorted copy to ensure the newest links are first.
+  // Return a sorted copy to ensure the newest links are first.
   return [...links].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
@@ -95,4 +99,59 @@ export async function addClickToLink(linkId: string, clickData: Omit<Click, 'id'
     links[linkIndex].clicks.unshift(newClick);
     revalidatePath(`/dashboard/analytics/${linkId}`);
     return newClick;
+}
+
+// Settings Management
+export async function getSettings(): Promise<Settings> {
+    return settings;
+}
+
+export async function updateSettings(newSettings: Settings): Promise<Settings> {
+    settings = newSettings;
+    revalidatePath('/dashboard/settings');
+    return settings;
+}
+
+// Loading Pages Management
+export async function getLoadingPages(): Promise<LoadingPage[]> {
+    return loadingPages;
+}
+
+export async function updateLoadingPages(newPages: LoadingPage[]): Promise<LoadingPage[]> {
+    loadingPages = newPages;
+    revalidatePath('/dashboard/loading-pages');
+    return loadingPages;
+}
+
+export async function getLoadingPageSettings(): Promise<Settings['loadingPageSettings']> {
+    return settings.loadingPageSettings;
+}
+
+export async function updateLoadingPageSettings(newLoadingSettings: Settings['loadingPageSettings']): Promise<Settings['loadingPageSettings']> {
+    settings.loadingPageSettings = newLoadingSettings;
+    revalidatePath('/dashboard/loading-pages');
+    revalidatePath('/dashboard/settings');
+    return settings.loadingPageSettings;
+}
+
+// CAPTCHA Config Management
+export async function getCaptchaConfig(): Promise<CaptchaConfig> {
+    return captchaConfig;
+}
+
+export async function updateCaptchaConfig(newConfig: CaptchaConfig): Promise<CaptchaConfig> {
+    captchaConfig = newConfig;
+    revalidatePath('/dashboard/settings/captcha');
+    return captchaConfig;
+}
+
+// AI Config Management
+export async function getAiConfig(): Promise<AiConfig> {
+    return aiConfig;
+}
+
+export async function updateAiConfig(newConfig: AiConfig): Promise<AiConfig> {
+    aiConfig = newConfig;
+    revalidatePath('/dashboard/settings/ai');
+    return aiConfig;
 }
