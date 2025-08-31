@@ -1,5 +1,3 @@
-
-
 export interface Click {
   id: string;
   ipAddress: string;
@@ -130,4 +128,8 @@ export interface Settings {
 export interface CaptchaConfig {
   siteKey: string;
   secretKey: string;
+}
+
+export interface AiConfig {
+    apiKey: string;
 }

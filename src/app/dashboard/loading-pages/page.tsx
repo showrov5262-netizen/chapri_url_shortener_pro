@@ -1,5 +1,4 @@
 import LoadingPagesView from "@/components/settings/loading-pages-view";
-import { mockLoadingPages, mockSettings } from "@/lib/data";
 
 export default function LoadingPagesSettingsPage() {
   return (
@@ -10,10 +9,7 @@ export default function LoadingPagesSettingsPage() {
           Configure a custom loading page to show users during a meta refresh redirect delay.
         </p>
       </div>
-      <LoadingPagesView 
-        initialSettings={mockSettings.loadingPageSettings}
-        loadingPages={mockLoadingPages}
-      />
+      <LoadingPagesView />
     </div>
   );
 }

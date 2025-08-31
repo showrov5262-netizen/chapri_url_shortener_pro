@@ -1,7 +1,6 @@
-
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { LoadingPage, Settings } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -12,27 +11,45 @@ import { Button } from "../ui/button";
 import { Eye, PlusCircle, Trash2, Edit } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
 import { EditLoadingPageDialog } from "./edit-loading-page-dialog";
-import usePersistentState from "@/hooks/use-persistent-state";
+import { getLoadingPages, updateLoadingPages, getLoadingPageSettings, updateLoadingPageSettings } from "@/lib/server-data";
+import { Skeleton } from "../ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 type LoadingPageSettings = Settings['loadingPageSettings'];
 
-interface LoadingPagesViewProps {
-  initialSettings: LoadingPageSettings;
-  loadingPages: LoadingPage[];
-}
-
-export default function LoadingPagesView({ initialSettings, loadingPages: initialPages }: LoadingPagesViewProps) {
-  const [settings, setSettings] = usePersistentState<LoadingPageSettings>('loadingPageSettings', initialSettings);
-  const [loadingPages, setLoadingPages] = usePersistentState<LoadingPage[]>(
-    'customLoadingPages',
-    initialPages
-  );
+export default function LoadingPagesView() {
+  const [settings, setSettings] = useState<LoadingPageSettings | null>(null);
+  const [loadingPages, setLoadingPages] = useState<LoadingPage[] | null>(null);
+  const { toast } = useToast();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<LoadingPage | null>(null);
 
+  useEffect(() => {
+    const fetchInitialData = async () => {
+        const [serverSettings, serverPages] = await Promise.all([
+            getLoadingPageSettings(),
+            getLoadingPages()
+        ]);
+        setSettings(serverSettings);
+        setLoadingPages(serverPages);
+    };
+    fetchInitialData();
+  }, []);
+
+  const handleSettingsChange = (newSettings: Partial<LoadingPageSettings>) => {
+    if (!settings) return;
+    setSettings(prev => ({ ...prev!, ...newSettings }));
+  };
+
+  const handleSaveChanges = async () => {
+    if (!settings) return;
+    await updateLoadingPageSettings(settings);
+    toast({ title: "Settings Saved", description: "Your loading page configurations have been updated." });
+  }
+
   const handleCreateNew = () => {
-    setEditingPage(null); // No page is being edited, so we are creating
+    setEditingPage(null);
     setIsEditDialogOpen(true);
   }
 
@@ -41,22 +58,41 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
     setIsEditDialogOpen(true);
   }
 
-  const handleSavePage = (pageData: LoadingPage) => {
-    if (editingPage && pageData.id) { // We are editing an existing page
-      setLoadingPages(loadingPages.map(p => p.id === pageData.id ? pageData : p));
-    } else { // We are creating a new page
-      setLoadingPages([...loadingPages, { ...pageData, id: `lp-${Date.now()}` }]);
+  const handleSavePage = async (pageData: LoadingPage) => {
+    if (!loadingPages) return;
+    let newPages: LoadingPage[];
+    if (editingPage && pageData.id) {
+      newPages = loadingPages.map(p => p.id === pageData.id ? pageData : p);
+    } else {
+      newPages = [...loadingPages, { ...pageData, id: `lp-${Date.now()}` }];
     }
+    setLoadingPages(newPages);
+    await updateLoadingPages(newPages);
+
     setIsEditDialogOpen(false);
     setEditingPage(null);
   }
 
-  const handleDelete = (pageId: string) => {
-    setLoadingPages(loadingPages.filter(p => p.id !== pageId));
-    // If the deleted page was the selected one, reset the selection
+  const handleDelete = async (pageId: string) => {
+    if (!loadingPages || !settings) return;
+    const newPages = loadingPages.filter(p => p.id !== pageId);
+    setLoadingPages(newPages);
+    await updateLoadingPages(newPages);
+
     if (settings.selectedPageId === pageId) {
-        setSettings(prev => ({ ...prev, selectedPageId: null }));
+        const newSettings = { ...settings, selectedPageId: null };
+        setSettings(newSettings);
+        await updateLoadingPageSettings(newSettings);
     }
+  }
+  
+  if (!settings || loadingPages === null) {
+      return (
+        <div className="grid gap-6 lg:grid-cols-3">
+            <Skeleton className="lg:col-span-1 h-96" />
+            <Skeleton className="lg:col-span-2 h-96" />
+        </div>
+      );
   }
 
   return (
@@ -79,7 +115,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
               </div>
               <Switch
                 checked={settings.enabled}
-                onCheckedChange={(checked) => setSettings(prev => ({...prev, enabled: checked}))}
+                onCheckedChange={(checked) => handleSettingsChange({ enabled: checked })}
               />
             </div>
 
@@ -87,7 +123,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
               <Label>Display Mode</Label>
               <RadioGroup
                 value={settings.mode}
-                onValueChange={(value: 'specific' | 'random') => setSettings(prev => ({...prev, mode: value}))}
+                onValueChange={(value: 'specific' | 'random') => handleSettingsChange({ mode: value })}
                 disabled={!settings.enabled}
               >
                 <div className="flex items-center space-x-2">
@@ -105,7 +141,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
               <Label htmlFor="select-page">Select a Page</Label>
               <Select
                 value={settings.selectedPageId ?? ""}
-                onValueChange={(value) => setSettings(prev => ({...prev, selectedPageId: value}))}
+                onValueChange={(value) => handleSettingsChange({ selectedPageId: value })}
                 disabled={!settings.enabled || settings.mode !== 'specific'}
               >
                 <SelectTrigger id="select-page">
@@ -122,7 +158,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
             </div>
           </CardContent>
           <CardFooter>
-              <Button>Save Changes</Button>
+              <Button onClick={handleSaveChanges}>Save Changes</Button>
           </CardFooter>
         </Card>
         
@@ -151,6 +187,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
                               className="w-full h-full border rounded-md"
                               sandbox="allow-scripts"
                               scrolling="no"
+                              title={`preview-${page.name}`}
                           />
                       </CardContent>
                       <CardFooter className="flex justify-end gap-2">
@@ -167,6 +204,7 @@ export default function LoadingPagesView({ initialSettings, loadingPages: initia
                                   srcDoc={page.content}
                                   className="w-full h-full"
                                   sandbox="allow-scripts"
+                                  title={`preview-dialog-${page.name}`}
                                  />
                               </div>
                               <AlertDialogFooter>

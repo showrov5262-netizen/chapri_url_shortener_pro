@@ -1,53 +1,66 @@
-
 'use client'
 
 import { useState, useEffect } from "react";
-import type { Settings } from "@/types";
+import type { Settings, CaptchaConfig, AiConfig } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "../ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { useAiState } from "@/hooks/use-ai-state";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { cn } from "@/lib/utils";
-import usePersistentState from "@/hooks/use-persistent-state";
+import { getSettings, updateSettings, getCaptchaConfig, getAiConfig } from "@/lib/server-data";
+import { Skeleton } from "../ui/skeleton";
 
 
-export default function FeatureToggles({ initialSettings }: { initialSettings: Settings }) {
-  const [settings, setSettings] = usePersistentState<Settings>('globalSettings', initialSettings);
-  const { status: aiStatus } = useAiState();
-  const isAiConfigured = aiStatus === 'valid';
+export default function FeatureToggles() {
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [isAiConfigured, setIsAiConfigured] = useState(false);
   const [isCaptchaConfigured, setIsCaptchaConfigured] = useState(false);
-
+  
   useEffect(() => {
-      if (typeof window !== 'undefined') {
-          const captchaConfig = localStorage.getItem('captchaConfig');
-          setIsCaptchaConfigured(!!captchaConfig);
-      }
+    const fetchInitialData = async () => {
+      const [serverSettings, captchaConfig, aiConfig] = await Promise.all([
+        getSettings(),
+        getCaptchaConfig(),
+        getAiConfig()
+      ]);
+      setSettings(serverSettings);
+      setIsCaptchaConfigured(!!(captchaConfig?.siteKey && captchaConfig?.secretKey));
+      setIsAiConfigured(!!aiConfig?.apiKey); // A simple check if API key exists. A validity check could also be used.
+    };
+    fetchInitialData();
   }, []);
 
-  const handleToggle = (key: keyof Settings | `manualBotDetection.${keyof Settings['manualBotDetection']}`) => {
+  const handleToggle = async (key: keyof Settings | `manualBotDetection.${keyof Settings['manualBotDetection']}`) => {
+    if (!settings) return;
+
+    let newSettings: Settings;
     const keys = key.split('.');
     if (keys.length > 1 && keys[0] === 'manualBotDetection') {
       const subKey = keys[1] as keyof Settings['manualBotDetection'];
-      setSettings(prev => ({
-        ...prev,
+      newSettings = {
+        ...settings,
         manualBotDetection: {
-          ...prev.manualBotDetection,
-          [subKey]: !prev.manualBotDetection[subKey],
+          ...settings.manualBotDetection,
+          [subKey]: !settings.manualBotDetection[subKey],
         },
-      }));
+      };
     } else {
-      setSettings(prev => ({ ...prev, [key]: !prev[key as keyof Settings] as any }));
+      newSettings = { ...settings, [key]: !settings[key as keyof Settings] as any };
     }
+    setSettings(newSettings); // Optimistic update
+    await updateSettings(newSettings); // Persist to server
   };
   
-  const handleRedirectTypeChange = (value: '301' | '302') => {
-    setSettings(prev => ({
-        ...prev,
+  const handleRedirectTypeChange = async (value: '301' | '302') => {
+    if (!settings) return;
+    const newSettings = {
+        ...settings,
         defaultRedirectType: value
-    }));
+    };
+    setSettings(newSettings);
+    await updateSettings(newSettings);
   }
 
   const AiStatusIndicator = () => (
@@ -67,6 +80,16 @@ export default function FeatureToggles({ initialSettings }: { initialSettings: S
       )}
     />
   );
+  
+  if (!settings) {
+    return (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-96 w-full" />
+            <Skeleton className="h-96 w-full" />
+            <Skeleton className="h-96 w-full" />
+        </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

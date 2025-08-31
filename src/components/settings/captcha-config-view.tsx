@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from "react";
@@ -10,8 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, CheckCircle2, XCircle, Loader2, Trash2, Eye, EyeOff, HelpCircle, Save } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import usePersistentState from "@/hooks/use-persistent-state";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { getCaptchaConfig, updateCaptchaConfig } from "@/lib/server-data";
 import type { CaptchaConfig } from "@/types";
 
 type CaptchaStatus = 'unknown' | 'valid' | 'invalid' | 'checking';
@@ -20,7 +19,7 @@ const initialCaptchaConfig: CaptchaConfig = { siteKey: '', secretKey: '' };
 
 export default function CaptchaConfigView() {
   const { toast } = useToast();
-  const [config, setConfig] = usePersistentState<CaptchaConfig>('captchaConfig', initialCaptchaConfig);
+  const [config, setConfig] = useState<CaptchaConfig>(initialCaptchaConfig);
   const [localSiteKey, setLocalSiteKey] = useState('');
   const [localSecretKey, setLocalSecretKey] = useState('');
   const [status, setStatus] = useState<CaptchaStatus>('unknown');
@@ -28,26 +27,32 @@ export default function CaptchaConfigView() {
   const [showSecret, setShowSecret] = useState(false);
 
   useEffect(() => {
-    // Sync local state with persisted state on mount
-    if (config) {
-      setLocalSiteKey(config.siteKey || '');
-      setLocalSecretKey(config.secretKey || '');
-    }
-  }, [config]);
+    const fetchConfig = async () => {
+      const serverConfig = await getCaptchaConfig();
+      if (serverConfig) {
+        setConfig(serverConfig);
+        setLocalSiteKey(serverConfig.siteKey || '');
+        setLocalSecretKey(serverConfig.secretKey || '');
+      }
+    };
+    fetchConfig();
+  }, []);
 
-  const handleClearKeys = () => {
+  const handleClearKeys = async () => {
     setLocalSiteKey('');
     setLocalSecretKey('');
-    setConfig(initialCaptchaConfig);
+    await updateCaptchaConfig(initialCaptchaConfig);
     setStatus('unknown');
     toast({
         title: "CAPTCHA Keys Cleared",
-        description: "The reCAPTCHA keys have been removed from local storage.",
+        description: "The reCAPTCHA keys have been removed from the server.",
     });
   }
   
-  const handleSaveKeys = () => {
-    setConfig({ siteKey: localSiteKey, secretKey: localSecretKey });
+  const handleSaveKeys = async () => {
+    const newConfig = { siteKey: localSiteKey, secretKey: localSecretKey };
+    await updateCaptchaConfig(newConfig);
+    setConfig(newConfig);
     setStatus('unknown');
     toast({
         title: "CAPTCHA Keys Saved",
@@ -70,7 +75,7 @@ export default function CaptchaConfigView() {
         // In a real app, we would make a server-side call to Google's verification endpoint.
         // For this prototype, we'll simulate a successful check if keys are present.
         await new Promise(resolve => setTimeout(resolve, 1000));
-        setConfig({ siteKey: localSiteKey, secretKey: localSecretKey });
+        await updateCaptchaConfig({ siteKey: localSiteKey, secretKey: localSecretKey });
         setStatus('valid');
         toast({
             title: "CAPTCHA Keys are Valid",
@@ -98,6 +103,9 @@ export default function CaptchaConfigView() {
         case 'checking':
              return <Badge variant="outline"><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Checking...</Badge>;
         default:
+             if (config.siteKey && config.secretKey) {
+                return <Badge variant="outline">Configured (Unchecked)</Badge>;
+             }
             return <Badge variant="outline">Unknown</Badge>;
     }
   }
@@ -149,7 +157,7 @@ export default function CaptchaConfigView() {
           <AlertDescription>
              <div className="flex items-center justify-between">
                 <p className="text-xs">
-                    Your keys are stored securely in your browser's local storage.
+                    Your keys are stored securely on the server.
                 </p>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>

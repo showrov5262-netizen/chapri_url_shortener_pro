@@ -1,55 +1,13 @@
-
-
 // src/app/[shortCode]/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import type { Link, Click, LoadingPage, Settings, CaptchaConfig } from '@/types';
-import { getLinkByShortCode, addClickToLink } from '@/lib/server-data';
+import { getLinkByShortCode, addClickToLink, getLoadingPages, getSettings, getCaptchaConfig } from '@/lib/server-data';
 
-// --- Client-side Data Management ---
-// These helpers now fetch from the server-side logic via server actions.
-
-const getLoadingPagesFromStorage = (): LoadingPage[] => {
-    if (typeof window === 'undefined') return [];
-    try {
-        const item = window.localStorage.getItem('customLoadingPages');
-        return item ? JSON.parse(item) : [];
-    } catch (error) {
-        console.error("Failed to parse loading pages from localStorage", error);
-        return [];
-    }
-}
-
-const getSettingsFromStorage = (): Settings | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-        const item = window.localStorage.getItem('globalSettings');
-        return item ? JSON.parse(item) : null;
-    } catch (error) {
-        console.error("Failed to parse settings from localStorage", error);
-        return null;
-    }
-}
-
-const getCaptchaConfigFromStorage = (): CaptchaConfig | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-        const item = window.localStorage.getItem('captchaConfig');
-        return item ? JSON.parse(item) : null;
-    } catch (error) {
-        console.error("Failed to parse captcha config from localStorage", error);
-        return null;
-    }
-}
-
-
-const getLoadingPageContent = (link: Link): string => {
-    const loadingPages = getLoadingPagesFromStorage();
-    const globalSettings = getSettingsFromStorage();
-    
-    const defaultConfig = globalSettings?.loadingPageSettings ?? { enabled: false, mode: 'random', selectedPageId: null };
+const getLoadingPageContent = (link: Link, allLoadingPages: LoadingPage[], allSettings: Settings): string => {
+    const defaultConfig = allSettings?.loadingPageSettings ?? { enabled: false, mode: 'random', selectedPageId: null };
     
     const usePerLinkConfig = link.loadingPageConfig && !link.loadingPageConfig.useGlobal;
     const config = usePerLinkConfig ? link.loadingPageConfig! : defaultConfig;
@@ -62,20 +20,22 @@ const getLoadingPageContent = (link: Link): string => {
     const effectiveMode = config.mode === 'global' ? defaultConfig.mode : config.mode;
     
     if (effectiveMode === 'random') {
-        if (loadingPages.length > 0) {
-            const randomIndex = Math.floor(Math.random() * loadingPages.length);
-            pageId = loadingPages[randomIndex].id;
+        if (allLoadingPages.length > 0) {
+            const randomIndex = Math.floor(Math.random() * allLoadingPages.length);
+            pageId = allLoadingPages[randomIndex].id;
         }
     } else if (effectiveMode === 'specific') {
         pageId = config.selectedPageId ?? defaultConfig.selectedPageId;
     }
 
-    const page = loadingPages.find(p => p.id === pageId);
+    const page = allLoadingPages.find(p => p.id === pageId);
     return page ? page.content : '<p>Redirecting...</p>';
 }
 
 function getDestinationUrl(link: Link): string {
-    const userCountry = 'US'; // Mock country
+    if (typeof window === 'undefined') return link.longUrl; // Return base URL during SSR
+
+    const userCountry = 'US'; // Mock country for demonstration
     const geoTarget = link.geoTargets?.find(t => t.country === userCountry);
     if (geoTarget) return geoTarget.url;
 
@@ -147,12 +107,12 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
         setPageTitle(foundLink.title);
 
         if (foundLink.captchaVerification) {
-            const config = getCaptchaConfigFromStorage();
+            const config = await getCaptchaConfig();
             if (config?.siteKey) {
                 setCaptchaSiteKey(config.siteKey);
                 setStatus('captcha');
             } else {
-                // CAPTCHA configured for link but no site key found, proceed without.
+                console.warn("Link requires CAPTCHA, but no site key is configured. Proceeding without.");
                 setStatus('redirecting'); 
             }
         } else {
@@ -200,7 +160,8 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
         setCloakedUrl(finalUrl);
         setStatus('cloaking');
       } else if (link.useMetaRefresh) {
-        const content = getLoadingPageContent(link);
+        const [allLoadingPages, allSettings] = await Promise.all([getLoadingPages(), getSettings()]);
+        const content = getLoadingPageContent(link, allLoadingPages, allSettings);
         setPageContent(content);
         setStatus('rendering_loading_page'); // Render the page first
         // Add meta tag after a short delay to ensure content renders
@@ -246,9 +207,10 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
           {(() => {
               if (typeof window !== 'undefined') {
                   const handleSuccess = () => onCaptchaSuccess();
-                  window.addEventListener('captchaSuccess', handleSuccess);
+                  const captchaSuccessEvent = 'captchaSuccess';
+                  window.addEventListener(captchaSuccessEvent, handleSuccess);
                   // Cleanup listener on component unmount
-                  return () => window.removeEventListener('captchaSuccess', handleSuccess);
+                  return () => window.removeEventListener(captchaSuccessEvent, handleSuccess);
               }
           })()}
       </div>

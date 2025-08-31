@@ -1,5 +1,3 @@
-
-
 'use client'
 
 import {
@@ -23,42 +21,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format } from "date-fns";
-import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLoadingPageConfig, LoadingPage, Settings } from "@/types";
+import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLoadingPageConfig, LoadingPage, Settings, CaptchaConfig } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { countries } from "@/lib/countries";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "../ui/command";
 import { ScrollArea } from "../ui/scroll-area";
-import { mockSettings } from "@/lib/data";
-
-const getInitialSettings = (): Settings => {
-    if (typeof window === 'undefined') {
-        return mockSettings;
-    }
-    const stored = window.localStorage.getItem('globalSettings');
-    return stored ? JSON.parse(stored) : mockSettings;
-}
+import { getSettings, getLoadingPages, getCaptchaConfig } from "@/lib/server-data";
 
 export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => Promise<void> }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     
-    // Initialize state with a function to read from localStorage once
-    const [globalSettings, setGlobalSettings] = useState<Settings>(getInitialSettings);
-
-    // Form state with defaults from global settings
+    // Server-fetched settings
+    const [globalSettings, setGlobalSettings] = useState<Settings | null>(null);
+    const [availableLoadingPages, setAvailableLoadingPages] = useState<LoadingPage[]>([]);
+    const [captchaConfig, setCaptchaConfig] = useState<CaptchaConfig | null>(null);
+    const isCaptchaConfigured = !!(captchaConfig?.siteKey && captchaConfig?.secretKey);
+    
+    // Form state
     const [longUrl, setLongUrl] = useState('');
     const [title, setTitle] = useState('');
     const [shortCode, setShortCode] = useState('');
     const [description, setDescription] = useState('');
     const [thumbnailUrl, setThumbnailUrl] = useState('');
     
-    const [useBase64Encoding, setUseBase64Encoding] = useState(globalSettings.useBase64Encoding);
-    const [isCloaked, setIsCloaked] = useState(globalSettings.linkCloaking);
-    const [useMetaRefresh, setUseMetaRefresh] = useState(globalSettings.metaRefresh);
+    // Advanced options state, initialized via useEffect
+    const [useBase64Encoding, setUseBase64Encoding] = useState(false);
+    const [isCloaked, setIsCloaked] = useState(false);
+    const [useMetaRefresh, setUseMetaRefresh] = useState(false);
     const [metaRefreshDelay, setMetaRefreshDelay] = useState<number | null>(0);
-    const [redirectType, setRedirectType] = useState<'301' | '302'>(globalSettings.defaultRedirectType);
+    const [redirectType, setRedirectType] = useState<'301' | '302'>('301');
     const [password, setPassword] = useState('');
     const [expiresAt, setExpiresAt] = useState<Date | undefined>();
     const [maxClicks, setMaxClicks] = useState<number | null>(null);
@@ -68,59 +62,46 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
     const [abTestUrls, setAbTestUrls] = useState<string[]>([]);
     const [retargetingPixels, setRetargetingPixels] = useState<RetargetingPixel[]>([]);
     const [loadingPageConfig, setLoadingPageConfig] = useState<LinkLoadingPageConfig>({ useGlobal: true, mode: 'global', selectedPageId: null });
-    const [captchaVerification, setCaptchaVerification] = useState(globalSettings.captchaVerification);
+    const [captchaVerification, setCaptchaVerification] = useState(false);
 
     // Toggles for enabling/disabling advanced sections
-    const [usePassword, setUsePassword] = useState(globalSettings.passwordProtection);
-    const [useExpiration, setUseExpiration] = useState(globalSettings.linkExpiration);
-    const [useSpoof, setUseSpoof] = useState(globalSettings.spoof);
-    const [useGeoTargeting, setUseGeoTargeting] = useState(globalSettings.geoTargeting);
-    const [useDeviceTargeting, setUseDeviceTargeting] = useState(globalSettings.deviceTargeting);
-    const [useABTesting, setUseABTesting] = useState(globalSettings.abTestUrls);
-    const [usePixels, setUsePixels] = useState(globalSettings.retargetingPixels);
+    const [usePassword, setUsePassword] = useState(false);
+    const [useExpiration, setUseExpiration] = useState(false);
+    const [useSpoof, setUseSpoof] = useState(false);
+    const [useGeoTargeting, setUseGeoTargeting] = useState(false);
+    const [useDeviceTargeting, setUseDeviceTargeting] = useState(false);
+    const [useABTesting, setUseABTesting] = useState(false);
+    const [usePixels, setUsePixels] = useState(false);
     const [useLoadingPageOverride, setUseLoadingPageOverride] = useState(false);
 
-    const [availableLoadingPages, setAvailableLoadingPages] = useState<LoadingPage[]>([]);
-    const [isCaptchaConfigured, setIsCaptchaConfigured] = useState(false);
-
-    // Effect to sync with localStorage settings when the dialog opens
+    // Effect to fetch settings from the server when the dialog opens
     useEffect(() => {
         if (open) {
-            const currentSettings = getInitialSettings();
-            setGlobalSettings(currentSettings);
-            
-            // Reset form state based on potentially updated global settings
-            setUseBase64Encoding(currentSettings.useBase64Encoding);
-            setIsCloaked(currentSettings.linkCloaking);
-            setUseMetaRefresh(currentSettings.metaRefresh);
-            setRedirectType(currentSettings.defaultRedirectType);
-            setCaptchaVerification(currentSettings.captchaVerification);
-            setUsePassword(currentSettings.passwordProtection);
-            setUseExpiration(currentSettings.linkExpiration);
-            setUseSpoof(currentSettings.spoof);
-            setUseGeoTargeting(currentSettings.geoTargeting);
-            setUseDeviceTargeting(currentSettings.deviceTargeting);
-            setUseABTesting(currentSettings.abTestUrls);
-            setUsePixels(currentSettings.retargetingPixels);
+            const fetchInitialData = async () => {
+                const [settings, loadingPages, captchaConf] = await Promise.all([
+                    getSettings(),
+                    getLoadingPages(),
+                    getCaptchaConfig()
+                ]);
+                setGlobalSettings(settings);
+                setAvailableLoadingPages(loadingPages);
+                setCaptchaConfig(captchaConf);
 
-            try {
-                const item = window.localStorage.getItem('customLoadingPages');
-                if (item) setAvailableLoadingPages(JSON.parse(item));
-                
-                const captchaConfig = window.localStorage.getItem('captchaConfig');
-                if (captchaConfig) {
-                    const parsed = JSON.parse(captchaConfig);
-                    if(parsed.siteKey && parsed.secretKey) {
-                        setIsCaptchaConfigured(true);
-                    } else {
-                        setIsCaptchaConfigured(false);
-                    }
-                } else {
-                    setIsCaptchaConfigured(false);
-                }
-            } catch (error) {
-                console.error("Failed to load settings from localStorage", error);
-            }
+                // Initialize form state based on global settings
+                setUseBase64Encoding(settings.useBase64Encoding);
+                setIsCloaked(settings.linkCloaking);
+                setUseMetaRefresh(settings.metaRefresh);
+                setRedirectType(settings.defaultRedirectType);
+                setCaptchaVerification(settings.captchaVerification);
+                setUsePassword(settings.passwordProtection);
+                setUseExpiration(settings.linkExpiration);
+                setUseSpoof(settings.spoof);
+                setUseGeoTargeting(settings.geoTargeting);
+                setUseDeviceTargeting(settings.deviceTargeting);
+                setUseABTesting(settings.abTestUrls);
+                setUsePixels(settings.retargetingPixels);
+            };
+            fetchInitialData();
         }
     }, [open]);
 
@@ -142,7 +123,6 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
         setLoadingPageConfig({ useGlobal: true, mode: 'global', selectedPageId: null });
         setUseLoadingPageOverride(false);
     };
-
 
     const addGeoTarget = () => setGeoTargets([...geoTargets, { country: '', url: '' }]);
     const removeGeoTarget = (index: number) => setGeoTargets(geoTargets.filter((_, i) => i !== index));

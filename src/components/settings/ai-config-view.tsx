@@ -1,4 +1,3 @@
-
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -10,43 +9,53 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, CheckCircle2, XCircle, Loader2, Trash2, Eye, EyeOff, HelpCircle, Save } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { validateApiKey } from "@/ai/flows/validate-api-key";
-import { useAiState } from "@/hooks/use-ai-state";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { getAiConfig, updateAiConfig } from "@/lib/server-data";
+import type { AiConfig } from "@/types";
+
+type ApiStatus = 'unknown' | 'valid' | 'invalid' | 'checking';
 
 export default function AiConfigView() {
   const { toast } = useToast();
-  const { 
-    apiKey, 
-    setApiKey, 
-    status, 
-    setStatus, 
-    isChecking, 
-    setIsChecking, 
-    errorMessage, 
-    setErrorMessage 
-  } = useAiState();
-  const [localApiKey, setLocalApiKey] = useState(apiKey);
+  const [config, setConfig] = useState<AiConfig | null>(null);
+  const [localApiKey, setLocalApiKey] = useState('');
+  const [status, setStatus] = useState<ApiStatus>('unknown');
+  const [isChecking, setIsChecking] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
 
-  const handleClearKey = () => {
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const serverConfig = await getAiConfig();
+      setConfig(serverConfig);
+      setLocalApiKey(serverConfig.apiKey || '');
+      // If a key exists, assume it needs to be checked
+      if (serverConfig.apiKey) {
+        setStatus('unknown');
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const handleClearKey = async () => {
     setLocalApiKey('');
-    setApiKey(''); // Clear global state
+    await updateAiConfig({ apiKey: '' });
     setStatus('unknown');
     setErrorMessage(null);
     toast({
         title: "API Key Cleared",
-        description: "The local API key has been removed from session storage.",
+        description: "The API key has been removed from the server.",
     });
   }
   
-  const handleSaveKey = () => {
-    setApiKey(localApiKey);
+  const handleSaveKey = async () => {
+    await updateAiConfig({ apiKey: localApiKey });
     setStatus('unknown'); // Reset status until checked
     setErrorMessage(null);
     toast({
-        title: "API Key Saved for Session",
-        description: "Your API key has been saved to your browser for local testing.",
+        title: "API Key Saved",
+        description: "Your API key has been saved on the server.",
     });
   };
 
@@ -63,8 +72,6 @@ export default function AiConfigView() {
     setStatus('checking');
     setErrorMessage(null);
     try {
-        // Save the key to session storage before checking it
-        setApiKey(localApiKey);
         const result = await validateApiKey({ apiKey: localApiKey });
 
         if (result.isValid) {
@@ -124,7 +131,7 @@ export default function AiConfigView() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-            <Label htmlFor="api-key">Gemini API Key (for Local Testing)</Label>
+            <Label htmlFor="api-key">Gemini API Key</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="api-key"
@@ -152,14 +159,11 @@ export default function AiConfigView() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>Important: Production vs. Local Keys</AlertTitle>
+          <AlertTitle>API Key Management</AlertTitle>
           <AlertDescription>
              <div className="space-y-2">
-                <p className="text-sm font-semibold text-destructive">
-                For your live website, you MUST set the <code className="font-mono bg-muted p-1 rounded-sm text-sm">GEMINI_API_KEY</code> as a secure environment variable in your hosting provider's (e.g., Vercel) settings.
-                </p>
                 <p className="text-xs text-muted-foreground">
-                    This page is for **local development and testing only**. The "Save Key" button stores the key in your browser's session, which is not secure for a live site and will not work once deployed.
+                    For this application, the API key is stored on the server. Clicking "Save Key" will persist it for all users. In a production environment with multiple users, you would typically manage this via secure environment variables.
                 </p>
                 <div className="flex justify-end">
                     <AlertDialog>
@@ -182,7 +186,6 @@ export default function AiConfigView() {
                                 <li>Copy the generated API key.</li>
                                 <li>Paste it into the input field on this page and click "Save Key", then "Check Status".</li>
                             </ol>
-                            <p>For your live site, you must add this key as an environment variable in your Vercel project settings.</p>
                             </div>
                         </AlertDialogDescription>
                         </AlertDialogHeader>
@@ -204,7 +207,7 @@ export default function AiConfigView() {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleSaveKey} disabled={!localApiKey}>
             <Save className="h-4 w-4 mr-2" />
-            Save Key for Session
+            Save Key
           </Button>
           <Button variant="secondary" onClick={handleCheckStatus} disabled={isChecking || !localApiKey}>
             {isChecking ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}

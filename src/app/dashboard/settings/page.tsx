@@ -1,5 +1,4 @@
 import FeatureToggles from "@/components/settings/feature-toggles";
-import { mockSettings } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +48,7 @@ export default function SettingsPage() {
             </CardContent>
         </Card>
       </div>
-      <FeatureToggles initialSettings={mockSettings} />
+      <FeatureToggles />
     </div>
   );
 }
