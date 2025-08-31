@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Upload, Globe, Smartphone, Users, X, Bot, Loader } from "lucide-react";
+import { PlusCircle, Upload, Globe, Smartphone, Users, X, Bot, Loader, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "../ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -38,6 +38,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
     const [shortCode, setShortCode] = useState('');
     const [description, setDescription] = useState('');
     const [thumbnailUrl, setThumbnailUrl] = useState('');
+    const [useBase64Encoding, setUseBase64Encoding] = useState(false);
 
     const [isCloaked, setIsCloaked] = useState(false);
     const [useMetaRefresh, setUseMetaRefresh] = useState(false);
@@ -113,9 +114,11 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
             }
         }
         
+        // Base64 encode the URL if the option is selected
+        const finalLongUrl = useBase64Encoding ? btoa(longUrl) : longUrl;
 
         const newLink: Omit<Link, 'id' | 'createdAt' | 'clicks'> = {
-            longUrl,
+            longUrl: finalLongUrl,
             title,
             shortCode: finalShortCode || Math.random().toString(36).substring(2, 8),
             description,
@@ -133,6 +136,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
             deviceTargets: useDeviceTargeting ? deviceTargets : [],
             abTestUrls: useABTesting ? abTestUrls : [],
             retargetingPixels: usePixels ? retargetingPixels : [],
+            useBase64Encoding,
         };
         
         onAddLink(newLink);
@@ -147,6 +151,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
         setShortCode('');
         setDescription('');
         setThumbnailUrl('');
+        setUseBase64Encoding(false);
     };
 
   return (
@@ -330,6 +335,24 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
                         <Input id="link-password" type="password" placeholder="Enter password" value={password} onChange={(e) => setPassword(e.target.value)} />
                       </div>
                     )}
+                  </div>
+                   <div className="rounded-lg border p-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <Label className="flex items-center gap-2" htmlFor="base64-encoding">
+                                <Lock className="h-4 w-4" />
+                                Encode Base64
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                Obfuscates the destination URL from simple bots.
+                            </p>
+                        </div>
+                        <Switch
+                            id="base64-encoding"
+                            checked={useBase64Encoding}
+                            onCheckedChange={setUseBase64Encoding}
+                        />
+                    </div>
                   </div>
                   <div className="rounded-lg border p-3 shadow-sm space-y-3">
                     <div className="flex items-center justify-between">

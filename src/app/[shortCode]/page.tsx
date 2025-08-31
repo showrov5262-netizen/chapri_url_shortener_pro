@@ -128,6 +128,7 @@ const getLoadingPageContent = (link: Link): string => {
 export default function ShortLinkRedirectPage({ params }: { params: { shortCode: string } }) {
   const { shortCode } = params;
   const [link, setLink] = useState<Link | null | undefined>(undefined);
+  const [destinationUrl, setDestinationUrl] = useState<string>('');
 
   useEffect(() => {
     // This effect runs only on the client-side
@@ -138,6 +139,21 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       // LOG THE CLICK!
       addClickToLinkInStorage(shortCode);
       setLink(foundLink);
+
+      // Handle Base64 decoding if necessary
+      if (foundLink.useBase64Encoding) {
+        try {
+            // The 'atob' function decodes a Base64 string.
+            const decodedUrl = atob(foundLink.longUrl);
+            setDestinationUrl(decodedUrl);
+        } catch (e) {
+            console.error("Failed to decode Base64 URL:", e);
+            setDestinationUrl(foundLink.longUrl); // Fallback to raw URL on error
+        }
+      } else {
+        setDestinationUrl(foundLink.longUrl);
+      }
+
     } else {
       setLink(null); // Explicitly set to null if not found
     }
@@ -162,13 +178,17 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
   }
 
   // --- REDIRECTION LOGIC ---
+  // Ensure we have a destination URL before attempting any redirect
+  if (!destinationUrl) {
+    return <div style={{ fontFamily: 'sans-serif', textAlign: 'center', paddingTop: '2rem' }}>Preparing link...</div>;
+  }
 
   // Handle Frame-based Cloaking
   if (link.isCloaked) {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}>
         <iframe
-          src={link.longUrl}
+          src={destinationUrl}
           style={{ width: '100%', height: '100%', border: 'none' }}
           title={link.title}
         />
@@ -186,7 +206,7 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
       <html>
       <head>
         <title>${link.title || 'Redirecting...'}</title>
-        <meta http-equiv="refresh" content="${delay};url=${link.longUrl}" />
+        <meta http-equiv="refresh" content="${delay};url=${destinationUrl}" />
         <style>
             /* Ensure the body takes up full space for centering */
             html, body { 
@@ -199,7 +219,7 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
         </style>
         <script>
           // Use setTimeout as a fallback, but meta tag is primary for this feature
-          setTimeout(function() { window.location.href = "${link.longUrl}"; }, ${delay * 1000});
+          setTimeout(function() { window.location.href = "${destinationUrl}"; }, ${delay * 1000});
         </script>
       </head>
       <body>
@@ -221,7 +241,7 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
   // Default: Standard Redirect (using client-side redirect)
   // This part of the code runs after the link state has been set.
   if (typeof window !== 'undefined') {
-      window.location.href = link.longUrl;
+      window.location.href = destinationUrl;
   }
   
   // Fallback content while the JavaScript redirect is being processed by the browser

@@ -75,6 +75,7 @@ export interface Link {
   password: string | null; // Password Protection
   expiresAt: string | null; // Link Expiration (date)
   maxClicks: number | null; // Link Expiration (clicks)
+  useBase64Encoding: boolean; // Obfuscate destination URL
 
   // Advanced Targeting
   geoTargets: GeoTarget[];

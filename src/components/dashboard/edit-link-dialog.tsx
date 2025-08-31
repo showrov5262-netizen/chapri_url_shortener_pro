@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import type { Link } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "../ui/switch";
+import { Lock } from "lucide-react";
 
 
 interface EditLinkDialogProps {
@@ -34,14 +36,27 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
     const [shortCode, setShortCode] = useState('');
     const [description, setDescription] = useState('');
     const [thumbnailUrl, setThumbnailUrl] = useState('');
+    const [useBase64Encoding, setUseBase64Encoding] = useState(false);
     
     useEffect(() => {
         if (link && isOpen) {
-            setLongUrl(link.longUrl);
+            // If the URL is encoded, decode it for editing
+            if (link.useBase64Encoding) {
+                try {
+                    setLongUrl(atob(link.longUrl));
+                } catch (e) {
+                    console.error("Failed to decode URL for editing:", e);
+                    setLongUrl(link.longUrl); // Fallback to raw URL
+                }
+            } else {
+                setLongUrl(link.longUrl);
+            }
+
             setTitle(link.title);
             setShortCode(link.shortCode);
             setDescription(link.description);
             setThumbnailUrl(link.thumbnailUrl || '');
+            setUseBase64Encoding(link.useBase64Encoding || false);
         }
     }, [link, isOpen]);
 
@@ -57,13 +72,16 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
             return;
         }
 
+        const finalLongUrl = useBase64Encoding ? btoa(longUrl) : longUrl;
+
         const updatedLink: Link = {
             ...link,
-            longUrl,
+            longUrl: finalLongUrl,
             title,
             shortCode,
             description,
             thumbnailUrl,
+            useBase64Encoding,
         };
         
         onUpdateLink(updatedLink);
@@ -110,6 +128,7 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
                   placeholder="e.g., summer-sale" 
                   value={shortCode}
                   onChange={(e) => setShortCode(e.target.value)}
+                  disabled // Disabling short code editing for now to prevent issues.
                 />
             </div>
           </div>
@@ -131,6 +150,24 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
               onChange={(e) => setThumbnailUrl(e.target.value)}
             />
           </div>
+           <div className="rounded-lg border p-3 shadow-sm mt-4">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2" htmlFor="base64-encoding-edit">
+                            <Lock className="h-4 w-4" />
+                            Encode Base64
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            Obfuscates the destination URL from simple bots.
+                        </p>
+                    </div>
+                    <Switch
+                        id="base64-encoding-edit"
+                        checked={useBase64Encoding}
+                        onCheckedChange={setUseBase64Encoding}
+                    />
+                </div>
+            </div>
         </div>
         <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
