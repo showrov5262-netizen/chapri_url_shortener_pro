@@ -58,8 +58,8 @@ export interface Link {
   longUrl: string;
   shortCode: string;
   title: string;
-  description: string;
-  thumbnailUrl?: string;
+  description: string | null;
+  thumbnailUrl?: string | null;
   createdAt: string;
   clicks: Click[];
 

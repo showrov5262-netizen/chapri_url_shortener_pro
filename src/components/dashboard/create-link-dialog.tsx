@@ -29,16 +29,24 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 import { countries } from "@/lib/countries";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "../ui/command";
 import { ScrollArea } from "../ui/scroll-area";
-import usePersistentState from "@/hooks/use-persistent-state";
 import { mockSettings } from "@/lib/data";
 
+const getInitialSettings = (): Settings => {
+    if (typeof window === 'undefined') {
+        return mockSettings;
+    }
+    const stored = window.localStorage.getItem('globalSettings');
+    return stored ? JSON.parse(stored) : mockSettings;
+}
 
 export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => void }) {
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
-    const [globalSettings] = usePersistentState<Settings>('globalSettings', mockSettings);
+    
+    // Initialize state with a function to read from localStorage once
+    const [globalSettings, setGlobalSettings] = useState<Settings>(getInitialSettings);
 
-    // Form state
+    // Form state with defaults from global settings
     const [longUrl, setLongUrl] = useState('');
     const [title, setTitle] = useState('');
     const [shortCode, setShortCode] = useState('');
@@ -53,7 +61,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
     const [password, setPassword] = useState('');
     const [expiresAt, setExpiresAt] = useState<Date | undefined>();
     const [maxClicks, setMaxClicks] = useState<number | null>(null);
-    const [spoof, setSpoof] = useState<SpoofData | null>(null);
+    const [spoof, setSpoof] = useState<SpoofData | null>({ title: '', description: '', imageUrl: '' });
     const [geoTargets, setGeoTargets] = useState<GeoTarget[]>([]);
     const [deviceTargets, setDeviceTargets] = useState<DeviceTarget[]>([]);
     const [abTestUrls, setAbTestUrls] = useState<string[]>([]);
@@ -61,6 +69,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
     const [loadingPageConfig, setLoadingPageConfig] = useState<LinkLoadingPageConfig>({ useGlobal: true, mode: 'global', selectedPageId: null });
     const [captchaVerification, setCaptchaVerification] = useState(globalSettings.captchaVerification);
 
+    // Toggles for enabling/disabling advanced sections
     const [usePassword, setUsePassword] = useState(globalSettings.passwordProtection);
     const [useExpiration, setUseExpiration] = useState(globalSettings.linkExpiration);
     const [useSpoof, setUseSpoof] = useState(globalSettings.spoof);
@@ -73,8 +82,26 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
     const [availableLoadingPages, setAvailableLoadingPages] = useState<LoadingPage[]>([]);
     const [isCaptchaConfigured, setIsCaptchaConfigured] = useState(false);
 
-     useEffect(() => {
+    // Effect to sync with localStorage settings when the dialog opens
+    useEffect(() => {
         if (open) {
+            const currentSettings = getInitialSettings();
+            setGlobalSettings(currentSettings);
+            
+            // Reset form state based on potentially updated global settings
+            setUseBase64Encoding(currentSettings.useBase64Encoding);
+            setIsCloaked(currentSettings.linkCloaking);
+            setUseMetaRefresh(currentSettings.metaRefresh);
+            setRedirectType(currentSettings.defaultRedirectType);
+            setCaptchaVerification(currentSettings.captchaVerification);
+            setUsePassword(currentSettings.passwordProtection);
+            setUseExpiration(currentSettings.linkExpiration);
+            setUseSpoof(currentSettings.spoof);
+            setUseGeoTargeting(currentSettings.geoTargeting);
+            setUseDeviceTargeting(currentSettings.deviceTargeting);
+            setUseABTesting(currentSettings.abTestUrls);
+            setUsePixels(currentSettings.retargetingPixels);
+
             try {
                 const item = window.localStorage.getItem('customLoadingPages');
                 if (item) setAvailableLoadingPages(JSON.parse(item));
@@ -84,31 +111,61 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
                     const parsed = JSON.parse(captchaConfig);
                     if(parsed.siteKey && parsed.secretKey) {
                         setIsCaptchaConfigured(true);
+                    } else {
+                        setIsCaptchaConfigured(false);
                     }
+                } else {
+                    setIsCaptchaConfigured(false);
                 }
-
             } catch (error) {
                 console.error("Failed to load settings from localStorage", error);
             }
         }
     }, [open]);
 
+    const resetForm = () => {
+        setLongUrl('');
+        setTitle('');
+        setShortCode('');
+        setDescription('');
+        setThumbnailUrl('');
+        setMetaRefreshDelay(0);
+        setPassword('');
+        setExpiresAt(undefined);
+        setMaxClicks(null);
+        setSpoof({ title: '', description: '', imageUrl: '' });
+        setGeoTargets([]);
+        setDeviceTargets([]);
+        setAbTestUrls([]);
+        setRetargetingPixels([]);
+        setLoadingPageConfig({ useGlobal: true, mode: 'global', selectedPageId: null });
+        setUseLoadingPageOverride(false);
+    };
+
+
     const addGeoTarget = () => setGeoTargets([...geoTargets, { country: '', url: '' }]);
     const removeGeoTarget = (index: number) => setGeoTargets(geoTargets.filter((_, i) => i !== index));
     const updateGeoTarget = (index: number, field: 'country' | 'url', value: string) => {
-        const newTargets = [...geoTargets];
-        newTargets[index][field] = value;
-        setGeoTargets(newTargets);
+        setGeoTargets(geoTargets.map((t, i) => i === index ? { ...t, [field]: value } : t));
     };
     
     const addDeviceTarget = () => setDeviceTargets([...deviceTargets, { device: 'iOS', url: '' }]);
     const removeDeviceTarget = (index: number) => setDeviceTargets(deviceTargets.filter((_, i) => i !== index));
+    const updateDeviceTarget = (index: number, field: 'device' | 'url', value: any) => {
+        setDeviceTargets(deviceTargets.map((t, i) => i === index ? { ...t, [field]: value } : t));
+    };
     
     const addAbTestUrl = () => setAbTestUrls([...abTestUrls, '']);
     const removeAbTestUrl = (index: number) => setAbTestUrls(abTestUrls.filter((_, i) => i !== index));
+    const updateAbTestUrl = (index: number, value: string) => {
+        setAbTestUrls(abTestUrls.map((u, i) => (i === index ? value : u)));
+    };
     
     const addPixel = () => setRetargetingPixels([...retargetingPixels, { provider: 'Facebook', id: '' }]);
     const removePixel = (index: number) => setRetargetingPixels(retargetingPixels.filter((_, i) => i !== index));
+    const updatePixel = (index: number, field: 'provider' | 'id', value: any) => {
+        setRetargetingPixels(retargetingPixels.map((p, i) => (i === index ? { ...p, [field]: value } : p)));
+    };
 
     const handleSubmit = () => {
         if (!longUrl || !title) {
@@ -128,8 +185,8 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
             longUrl: finalLongUrl,
             title,
             shortCode: finalShortCode || Math.random().toString(36).substring(2, 8),
-            description,
-            thumbnailUrl,
+            description: description || null,
+            thumbnailUrl: thumbnailUrl || null,
             redirectType,
             isCloaked,
             useMetaRefresh,
@@ -150,8 +207,7 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
         onAddLink(newLink);
         toast({ title: "Link Created!", description: "Your new short link has been added." });
         setOpen(false);
-        // Reset form state
-        setLongUrl(''); setTitle(''); setShortCode(''); setDescription(''); setThumbnailUrl('');
+        resetForm();
     };
 
   return (
@@ -214,11 +270,11 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
                     <div className="space-y-0.5"><Label>Meta Refresh Redirect</Label><p className="text-xs text-muted-foreground">Redirect via an intermediate page.</p></div>
                     <Switch checked={useMetaRefresh} onCheckedChange={setUseMetaRefresh} />
                   </div>
-                   {useMetaRefresh && (<div className="space-y-4 pt-4"><div className="grid gap-2"><Label htmlFor="redirect-delay" className="text-xs">Redirect delay timer</Label><Input id="redirect-delay" type="number" placeholder="0 for instant redirect" value={metaRefreshDelay ?? ''} onChange={(e) => setMetaRefreshDelay(parseInt(e.target.value, 10) || 0)} /></div></div>)}
+                   {useMetaRefresh && (<div className="space-y-4 pt-4"><div className="grid gap-2"><Label htmlFor="redirect-delay" className="text-xs">Redirect delay (seconds)</Label><Input id="redirect-delay" type="number" placeholder="0 for instant redirect" value={metaRefreshDelay ?? ''} onChange={(e) => setMetaRefreshDelay(parseInt(e.target.value, 10) || 0)} /></div></div>)}
                 </div>
                 <div className="rounded-lg border p-3 shadow-sm space-y-3">
                     <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Spoof Social Media Preview</Label><p className="text-xs text-muted-foreground">Customize the link preview on social platforms.</p></div><Switch checked={useSpoof} onCheckedChange={setUseSpoof}/></div>
-                    {useSpoof && (<div className="space-y-4 pt-2"><div className="grid gap-2"><Label htmlFor="spoof-title" className="text-xs">Spoofed Title</Label><Input id="spoof-title" placeholder="e.g., An Incredible Offer!" onChange={(e) => setSpoof(s => ({...s!, title: e.target.value}))} /></div><div className="grid gap-2"><Label htmlFor="spoof-description" className="text-xs">Spoofed Description</Label><Textarea id="spoof-description" placeholder="You won't believe what happens next." onChange={(e) => setSpoof(s => ({...s!, description: e.target.value}))} /></div><div className="grid gap-2"><Label className="text-xs" htmlFor="spoof-image-url">Spoofed Thumbnail URL</Label><Input id="spoof-image-url" placeholder="https://example.com/spoof-image.png" onChange={(e) => setSpoof(s => ({...s!, imageUrl: e.target.value}))} /></div></div>)}
+                    {useSpoof && (<div className="space-y-4 pt-2"><div className="grid gap-2"><Label htmlFor="spoof-title" className="text-xs">Spoofed Title</Label><Input id="spoof-title" placeholder="e.g., An Incredible Offer!" value={spoof?.title || ''} onChange={(e) => setSpoof(s => ({...s!, title: e.target.value}))} /></div><div className="grid gap-2"><Label htmlFor="spoof-description" className="text-xs">Spoofed Description</Label><Textarea id="spoof-description" placeholder="You won't believe what happens next." value={spoof?.description || ''} onChange={(e) => setSpoof(s => ({...s!, description: e.target.value}))} /></div><div className="grid gap-2"><Label className="text-xs" htmlFor="spoof-image-url">Spoofed Thumbnail URL</Label><Input id="spoof-image-url" placeholder="https://example.com/spoof-image.png" value={spoof?.imageUrl || ''} onChange={(e) => setSpoof(s => ({...s!, imageUrl: e.target.value}))} /></div></div>)}
                   </div>
               </AccordionContent>
             </AccordionItem>
@@ -258,15 +314,15 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
                 </div>
                 <div className="rounded-lg border p-3 shadow-sm space-y-3">
                   <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Device Targeting</Label><p className="text-xs text-muted-foreground">Redirect based on user's device.</p></div><Switch checked={useDeviceTargeting} onCheckedChange={setUseDeviceTargeting} /></div>
-                  {useDeviceTargeting && (<div className="space-y-2 pt-2">{deviceTargets.map((target, index) => (<div key={index} className="flex items-center gap-2"><Select defaultValue={target.device}><SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="iOS">iOS</SelectItem><SelectItem value="Android">Android</SelectItem><SelectItem value="Desktop">Desktop</SelectItem></SelectContent></Select><Input placeholder="Destination URL" defaultValue={target.url} /><Button variant="ghost" size="icon" onClick={() => removeDeviceTarget(index)}><X className="h-4 w-4" /></Button></div>))}<Button variant="outline" size="sm" onClick={addDeviceTarget}><Smartphone className="mr-2 h-4 w-4" /> Add Device</Button></div>)}
+                  {useDeviceTargeting && (<div className="space-y-2 pt-2">{deviceTargets.map((target, index) => (<div key={index} className="flex items-center gap-2"><Select value={target.device} onValueChange={(v) => updateDeviceTarget(index, 'device', v)}><SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="iOS">iOS</SelectItem><SelectItem value="Android">Android</SelectItem><SelectItem value="Desktop">Desktop</SelectItem></SelectContent></Select><Input placeholder="Destination URL" value={target.url} onChange={(e) => updateDeviceTarget(index, 'url', e.target.value)} /><Button variant="ghost" size="icon" onClick={() => removeDeviceTarget(index)}><X className="h-4 w-4" /></Button></div>))}<Button variant="outline" size="sm" onClick={addDeviceTarget}><Smartphone className="mr-2 h-4 w-4" /> Add Device</Button></div>)}
                 </div>
                 <div className="rounded-lg border p-3 shadow-sm space-y-3">
                   <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>A/B Testing (Rotator)</Label><p className="text-xs text-muted-foreground">Split traffic between multiple URLs.</p></div><Switch checked={useABTesting} onCheckedChange={setUseABTesting} /></div>
-                  {useABTesting && (<div className="space-y-2 pt-2">{abTestUrls.map((url, index) => (<div key={index} className="flex items-center gap-2"><Input placeholder="Destination URL" defaultValue={url} /><Button variant="ghost" size="icon" onClick={() => removeAbTestUrl(index)}><X className="h-4 w-4" /></Button></div>))}<Button variant="outline" size="sm" onClick={addAbTestUrl}><Users className="mr-2 h-4 w-4" /> Add URL</Button></div>)}
+                  {useABTesting && (<div className="space-y-2 pt-2">{abTestUrls.map((url, index) => (<div key={index} className="flex items-center gap-2"><Input placeholder="Destination URL" value={url} onChange={(e) => updateAbTestUrl(index, e.target.value)} /><Button variant="ghost" size="icon" onClick={() => removeAbTestUrl(index)}><X className="h-4 w-4" /></Button></div>))}<Button variant="outline" size="sm" onClick={addAbTestUrl}><Users className="mr-2 h-4 w-4" /> Add URL</Button></div>)}
                 </div>
                 <div className="rounded-lg border p-3 shadow-sm space-y-3">
                   <div className="flex items-center justify-between"><div className="space-y-0.5"><Label>Retargeting Pixels</Label><p className="text-xs text-muted-foreground">Add tracking pixels to this link.</p></div><Switch checked={usePixels} onCheckedChange={setUsePixels} /></div>
-                  {usePixels && (<div className="space-y-2 pt-2">{retargetingPixels.map((pixel, index) => (<div key={index} className="flex items-center gap-2"><Select defaultValue={pixel.provider}><SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Facebook">Facebook</SelectItem><SelectItem value="Google Ads">Google Ads</SelectItem><SelectItem value="LinkedIn">LinkedIn</SelectItem><SelectItem value="Twitter">Twitter / X</SelectItem></SelectContent></Select><Input placeholder="Pixel ID" defaultValue={pixel.id} /><Button variant="ghost" size="icon" onClick={() => removePixel(index)}><X className="h-4 w-4" /></Button></div>))}<Button variant="outline" size="sm" onClick={addPixel}><Bot className="mr-2 h-4 w-4" /> Add Pixel</Button></div>)}
+                  {usePixels && (<div className="space-y-2 pt-2">{retargetingPixels.map((pixel, index) => (<div key={index} className="flex items-center gap-2"><Select value={pixel.provider} onValueChange={(v) => updatePixel(index, 'provider', v)}><SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Facebook">Facebook</SelectItem><SelectItem value="Google Ads">Google Ads</SelectItem><SelectItem value="LinkedIn">LinkedIn</SelectItem><SelectItem value="Twitter">Twitter / X</SelectItem></SelectContent></Select><Input placeholder="Pixel ID" value={pixel.id} onChange={(e) => updatePixel(index, 'id', e.target.value)} /><Button variant="ghost" size="icon" onClick={() => removePixel(index)}><X className="h-4 w-4" /></Button></div>))}<Button variant="outline" size="sm" onClick={addPixel}><Bot className="mr-2 h-4 w-4" /> Add Pixel</Button></div>)}
                 </div>
               </AccordionContent>
             </AccordionItem>

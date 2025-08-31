@@ -12,7 +12,7 @@ import { Badge } from "../ui/badge";
 import { validateApiKey } from "@/ai/flows/validate-api-key";
 import { useAiState } from "@/hooks/use-ai-state";
 import { useState } from "react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function AiConfigView() {
   const { toast } = useToast();
@@ -46,7 +46,7 @@ export default function AiConfigView() {
     setErrorMessage(null);
     toast({
         title: "API Key Saved",
-        description: "Your API key has been saved to your session. Check its status to validate.",
+        description: "Your API key has been saved to your browser session for local testing. This will NOT be active on your live site.",
     });
   };
 
@@ -63,7 +63,7 @@ export default function AiConfigView() {
     setStatus('checking');
     setErrorMessage(null);
     try {
-        // Save the key before checking it
+        // Save the key to session storage before checking it
         setApiKey(localApiKey);
         const result = await validateApiKey({ apiKey: localApiKey });
 
@@ -124,7 +124,7 @@ export default function AiConfigView() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-            <Label htmlFor="api-key">Gemini API Key</Label>
+            <Label htmlFor="api-key">Gemini API Key (for Local Testing)</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="api-key"
@@ -152,46 +152,46 @@ export default function AiConfigView() {
 
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertTitle>How to update your API Key</AlertTitle>
+          <AlertTitle>Important: Production vs. Local Keys</AlertTitle>
           <AlertDescription>
-             <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                    <p className="text-xs">
-                    For a deployed app, set the <code className="font-mono bg-muted p-1 rounded-sm text-xs">GEMINI_API_KEY</code> environment variable. This UI is for local testing.
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        Your key is stored in session storage and is not sent to any server except Google's.
-                    </p>
+             <div className="space-y-2">
+                <p className="text-xs font-semibold text-destructive">
+                For your live website (e.g., scoreink.com), you MUST set the <code className="font-mono bg-muted p-1 rounded-sm text-xs">GEMINI_API_KEY</code> as an environment variable in your Vercel project settings.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    This settings page is for **local development and testing only**. The "Save Key" button stores the key in your browser's session storage, not on the server.
+                </p>
+                <div className="flex justify-end">
+                    <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="secondary" size="sm">
+                        <HelpCircle className="h-4 w-4 mr-2"/>
+                        How to Get a Key
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>How to Get a Gemini API Key</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-4 text-sm text-muted-foreground text-left pt-2">
+                            <p>To use the AI features, you need a free API key from Google AI Studio.</p>
+                            <ol className="list-decimal list-inside space-y-2">
+                                <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-primary">Google AI Studio</a>.</li>
+                                <li>Sign in with your Google account.</li>
+                                <li>Click on <strong>"Create API key in new project"</strong>.</li>
+                                <li>Copy the generated API key.</li>
+                                <li>Paste it into the input field on this page and click "Save Key", then "Check Status".</li>
+                            </ol>
+                            <p>Make sure to keep your API key secure and do not share it publicly.</p>
+                            </div>
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogAction>Got it!</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                    </AlertDialog>
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="secondary" size="sm">
-                      <HelpCircle className="h-4 w-4 mr-2"/>
-                      Get a Key
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>How to Get a Gemini API Key</AlertDialogTitle>
-                      <AlertDialogDescription asChild>
-                        <div className="space-y-4 text-sm text-muted-foreground text-left pt-2">
-                          <p>To use the AI features, you need a free API key from Google AI Studio.</p>
-                          <ol className="list-decimal list-inside space-y-2">
-                            <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-primary">Google AI Studio</a>.</li>
-                            <li>Sign in with your Google account.</li>
-                            <li>Click on <strong>"Create API key in new project"</strong>.</li>
-                            <li>Copy the generated API key.</li>
-                            <li>Paste it into the input field on this page and click "Save Key", then "Check Status".</li>
-                          </ol>
-                          <p>Make sure to keep your API key secure and do not share it publicly.</p>
-                        </div>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogAction>Got it!</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
             </div>
           </AlertDescription>
         </Alert>
