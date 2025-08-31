@@ -104,7 +104,7 @@ const getLoadingPageContent = (link: Link): string => {
     const config = usePerLinkConfig ? link.loadingPageConfig! : defaultConfig;
 
     // Check if loading pages are enabled at all
-    if (!config.enabled && !usePerLink-linkConfig) {
+    if (!config.enabled && !usePerLinkConfig) {
         return '<p>Redirecting...</p>';
     }
 
@@ -188,7 +188,14 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
         <title>${link.title || 'Redirecting...'}</title>
         <meta http-equiv="refresh" content="${delay};url=${link.longUrl}" />
         <style>
-            html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+            /* Ensure the body takes up full space for centering */
+            html, body { 
+                margin: 0; 
+                padding: 0; 
+                width: 100%; 
+                height: 100%; 
+                overflow: hidden;
+            }
         </style>
         <script>
           // Use setTimeout as a fallback, but meta tag is primary for this feature
@@ -202,7 +209,12 @@ export default function ShortLinkRedirectPage({ params }: { params: { shortCode:
     `;
     
     return (
-        <div dangerouslySetInnerHTML={{ __html: fullHtml }} style={{width: '100vw', height: '100vh'}} />
+        <iframe
+            srcDoc={fullHtml}
+            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+            title={link.title}
+            sandbox="allow-scripts"
+        />
     );
   }
 
