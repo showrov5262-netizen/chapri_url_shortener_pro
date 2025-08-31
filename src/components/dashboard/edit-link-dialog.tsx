@@ -25,6 +25,10 @@ import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLo
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { countries } from "@/lib/countries";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "../ui/command";
+import { ScrollArea } from "../ui/scroll-area";
+
 
 interface EditLinkDialogProps {
   link: Link | null;
@@ -319,7 +323,40 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
                     <div className="space-y-2 pt-2">
                       {geoTargets.map((target, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <Input placeholder="Country Code (e.g., US)" value={target.country} onChange={(e) => updateGeoTarget(index, 'country', e.target.value)} />
+                          <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        className="w-[200px] justify-between"
+                                    >
+                                        {target.country
+                                            ? countries.find((c) => c.code === target.country)?.name
+                                            : "Select country..."}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[200px] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search country..." />
+                                        <CommandEmpty>No country found.</CommandEmpty>
+                                        <CommandGroup>
+                                            <ScrollArea className="h-48">
+                                                {countries.map((country) => (
+                                                <CommandItem
+                                                    key={country.code}
+                                                    value={country.code}
+                                                    onSelect={(currentValue) => {
+                                                        updateGeoTarget(index, 'country', currentValue.toUpperCase());
+                                                    }}
+                                                >
+                                                    {country.name}
+                                                </CommandItem>
+                                                ))}
+                                            </ScrollArea>
+                                        </CommandGroup>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                           <Input placeholder="Destination URL" value={target.url} onChange={(e) => updateGeoTarget(index, 'url', e.target.value)} />
                           <Button variant="ghost" size="icon" onClick={() => removeGeoTarget(index)}><X className="h-4 w-4" /></Button>
                         </div>
@@ -436,3 +473,5 @@ export function EditLinkDialog({ link, isOpen, onOpenChange, onUpdateLink }: Edi
     </Dialog>
   );
 }
+
+    

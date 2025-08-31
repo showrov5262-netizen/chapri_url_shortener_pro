@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Upload, Globe, Smartphone, Users, X, Bot, Loader, Lock } from "lucide-react";
+import { PlusCircle, Globe, Smartphone, Users, X, Bot, Lock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Switch } from "../ui/switch";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
@@ -26,6 +26,9 @@ import type { Link, SpoofData, GeoTarget, DeviceTarget, RetargetingPixel, LinkLo
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { countries } from "@/lib/countries";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "../ui/command";
+import { ScrollArea } from "../ui/scroll-area";
 
 
 export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLink: (link: Omit<Link, 'id' | 'createdAt' | 'clicks'>) => void }) {
@@ -81,6 +84,11 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
 
     const addGeoTarget = () => setGeoTargets([...geoTargets, { country: '', url: '' }]);
     const removeGeoTarget = (index: number) => setGeoTargets(geoTargets.filter((_, i) => i !== index));
+    const updateGeoTarget = (index: number, field: 'country' | 'url', value: string) => {
+        const newTargets = [...geoTargets];
+        newTargets[index][field] = value;
+        setGeoTargets(newTargets);
+    };
     
     const addDeviceTarget = () => setDeviceTargets([...deviceTargets, { device: 'iOS', url: '' }]);
     const removeDeviceTarget = (index: number) => setDeviceTargets(deviceTargets.filter((_, i) => i !== index));
@@ -132,10 +140,10 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
             expiresAt: useExpiration && expiresAt ? expiresAt.toISOString() : null,
             maxClicks: useExpiration ? maxClicks : null,
             spoof: useSpoof ? spoof : null,
-            geoTargets: useGeoTargeting ? geoTargets : [],
-            deviceTargets: useDeviceTargeting ? deviceTargets : [],
-            abTestUrls: useABTesting ? abTestUrls : [],
-            retargetingPixels: usePixels ? retargetingPixels : [],
+            geoTargets: useGeoTargeting ? geoTargets.filter(t => t.country && t.url) : [],
+            deviceTargets: useDeviceTargeting ? deviceTargets.filter(t => t.url) : [],
+            abTestUrls: useABTesting ? abTestUrls.filter(u => u) : [],
+            retargetingPixels: usePixels ? retargetingPixels.filter(p => p.id) : [],
             useBase64Encoding,
         };
         
@@ -414,8 +422,41 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
                     <div className="space-y-2 pt-2">
                       {geoTargets.map((target, index) => (
                         <div key={index} className="flex items-center gap-2">
-                          <Input placeholder="Country Code (e.g., US)" defaultValue={target.country} />
-                          <Input placeholder="Destination URL" defaultValue={target.url} />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        className="w-[200px] justify-between"
+                                    >
+                                        {target.country
+                                            ? countries.find((c) => c.code === target.country)?.name
+                                            : "Select country..."}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[200px] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search country..." />
+                                        <CommandEmpty>No country found.</CommandEmpty>
+                                        <CommandGroup>
+                                            <ScrollArea className="h-48">
+                                                {countries.map((country) => (
+                                                <CommandItem
+                                                    key={country.code}
+                                                    value={country.code}
+                                                    onSelect={(currentValue) => {
+                                                        updateGeoTarget(index, 'country', currentValue.toUpperCase());
+                                                    }}
+                                                >
+                                                    {country.name}
+                                                </CommandItem>
+                                                ))}
+                                            </ScrollArea>
+                                        </CommandGroup>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                          <Input placeholder="Destination URL" value={target.url} onChange={(e) => updateGeoTarget(index, 'url', e.target.value)} />
                           <Button variant="ghost" size="icon" onClick={() => removeGeoTarget(index)}><X className="h-4 w-4" /></Button>
                         </div>
                       ))}
@@ -600,3 +641,5 @@ export function CreateLinkDialog({ links, onAddLink }: { links: Link[], onAddLin
     </Dialog>
   );
 }
+
+    
